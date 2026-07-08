@@ -12,6 +12,9 @@ interface UIState {
   openEditNote: (id: ID) => void
   closeNoteModal: () => void
 
+  query: string
+  setQuery: (q: string) => void
+
   collapsedGroups: Set<ID>
   toggleGroup: (id: ID) => void
 }
@@ -26,6 +29,9 @@ export const useUI = create<UIState>((set) => ({
   openAddNote: () => set({ noteModal: { open: true, editingId: null } }),
   openEditNote: (id) => set({ noteModal: { open: true, editingId: id } }),
   closeNoteModal: () => set({ noteModal: { open: false, editingId: null } }),
+
+  query: '',
+  setQuery: (q) => set({ query: q }),
 
   collapsedGroups: new Set<ID>(),
   toggleGroup: (id) =>

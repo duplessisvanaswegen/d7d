@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
-import { Search, Plus, Settings } from 'lucide-react'
+import { Plus, Settings } from 'lucide-react'
 import { cycleTheme } from './theme'
 import { useUI } from '@/state/ui'
+import { SearchBar } from '@/features/search/SearchBar'
 import styles from './TopBar.module.css'
 
 function useLocalClock() {
@@ -22,15 +23,7 @@ export function TopBar() {
     <header className={styles.bar}>
       <span className={styles.logo}>d7d</span>
 
-      <div className={styles.search}>
-        <Search size={18} className={styles.searchIcon} />
-        <input
-          className={styles.input}
-          placeholder="Search bookmarks &amp; notes, or  @category  #tag"
-          aria-label="Search"
-        />
-        <kbd className={styles.kbd}>⌘S</kbd>
-      </div>
+      <SearchBar />
 
       <div className={styles.clocks}>
         <div className={styles.chip}>
