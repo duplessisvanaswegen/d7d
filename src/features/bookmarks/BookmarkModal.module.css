@@ -1,0 +1,109 @@
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.label {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+.input,
+.plainInput,
+.tagWrap {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 10px 12px;
+  background: var(--subtle);
+  border: 1px solid var(--border);
+  border-radius: 9px;
+}
+.input:focus-within,
+.plainInput:focus,
+.tagWrap:focus-within {
+  border-color: var(--accent);
+}
+.inputIcon {
+  color: var(--text-tertiary);
+  flex-shrink: 0;
+}
+.control,
+.tagInput,
+.plainInput {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: none;
+  outline: none;
+  font-size: 13px;
+  color: var(--text-primary);
+}
+.control::placeholder,
+.tagInput::placeholder,
+.plainInput::placeholder {
+  color: var(--text-tertiary);
+}
+.nudge {
+  font-size: 12px;
+  color: var(--danger);
+}
+.tagWrap {
+  flex-wrap: wrap;
+}
+.tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--accent);
+  background: var(--accent-soft);
+  border-radius: 6px;
+}
+.tag button {
+  display: inline-flex;
+  color: var(--accent);
+}
+.tagInput {
+  flex: 1;
+  min-width: 80px;
+  padding: 2px 0;
+}
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 4px;
+}
+.cancel {
+  padding: 9px 16px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  border-radius: 9px;
+}
+.cancel:hover {
+  background: var(--subtle);
+}
+.save {
+  padding: 9px 18px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--on-accent);
+  background: var(--accent);
+  border-radius: 9px;
+}
+.save:hover {
+  background: var(--accent-hover);
+}
+.save:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Search, Plus, Settings } from 'lucide-react'
 import { cycleTheme } from './theme'
+import { useUI } from '@/state/ui'
 import styles from './TopBar.module.css'
 
 function useLocalClock() {
@@ -14,6 +15,7 @@ function useLocalClock() {
 
 export function TopBar() {
   const now = useLocalClock()
+  const openAdd = useUI((s) => s.openAddBookmark)
   const time = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })
 
   return (
@@ -37,7 +39,7 @@ export function TopBar() {
         </div>
       </div>
 
-      <button className={styles.add}>
+      <button className={styles.add} onClick={openAdd}>
         <Plus size={16} />
         <span>Add</span>
       </button>
