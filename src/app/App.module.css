@@ -1,0 +1,20 @@
+.screen {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+.body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  overflow: hidden;
+}
+
+/* Mobile: stack (tabbed layout arrives in a later slice) */
+@media (max-width: 860px) {
+  .body {
+    flex-direction: column;
+  }
+}

@@ -1,0 +1,97 @@
+/* d7d design tokens — mirrors the Pencil variables (design-spec §2).
+   Theme via [data-theme]; accent via [data-accent]; density via [data-density]. */
+
+:root {
+  color-scheme: light dark;
+
+  --font-sans: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+
+  /* spacing scale */
+  --sp-1: 4px;  --sp-2: 8px;  --sp-3: 12px; --sp-4: 16px;
+  --sp-5: 20px; --sp-6: 24px; --sp-7: 28px; --sp-8: 36px;
+
+  /* radii */
+  --radius-chip: 6px;
+  --radius-ctl: 10px;
+  --radius-card: 12px;
+  --radius-modal: 16px;
+
+  /* density-driven (comfortable default; [data-density="compact"] overrides below) */
+  --card-pad: 16px;
+  --row-pad-y: 7px;
+  --list-gap: 14px;
+
+  /* ── Light palette (default) ── */
+  --canvas: #FAFAFA;
+  --surface: #FFFFFF;
+  --subtle: #F4F4F5;
+  --border: #E8E8EB;
+  --border-strong: #D4D4D8;
+  --text-primary: #18181B;
+  --text-secondary: #71717A;
+  --text-tertiary: #A1A1AA;
+  --accent: #5B5BD6;
+  --accent-hover: #4F4FCB;
+  --accent-soft: #EFEFFB;
+  --on-accent: #FFFFFF;
+  --danger: #E5484D;
+
+  --note-text: #44403C;
+  --note-yellow: #FEF3C7;
+  --note-blue: #DBEAFE;
+  --note-green: #DCFCE7;
+  --note-pink: #FCE7F3;
+  --note-purple: #EDE9FE;
+  --note-neutral: #F1F1F2;
+
+  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.06);
+  --shadow-pop: 0 10px 28px rgba(0, 0, 0, 0.14);
+  --shadow-modal: 0 20px 50px rgba(0, 0, 0, 0.20);
+}
+
+:root[data-theme='dark'] {
+  --canvas: #0E0E11;
+  --surface: #17171B;
+  --subtle: #1F1F24;
+  --border: #292930;
+  --border-strong: #3A3A42;
+  --text-primary: #F4F4F5;
+  --text-secondary: #A1A1AA;
+  --text-tertiary: #71717A;
+  --accent: #7C7CF0;
+  --accent-hover: #8F8FF3;
+  --accent-soft: #23233A;
+  --on-accent: #FFFFFF;
+  --danger: #FF6369;
+
+  --note-text: #E7E5E4;
+  --note-yellow: #3B341A;
+  --note-blue: #1B2A44;
+  --note-green: #16311F;
+  --note-pink: #3A1E2E;
+  --note-purple: #272146;
+  --note-neutral: #26262B;
+
+  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.40);
+  --shadow-pop: 0 10px 28px rgba(0, 0, 0, 0.55);
+  --shadow-modal: 0 20px 50px rgba(0, 0, 0, 0.60);
+}
+
+/* ── Accent overrides (design-spec: user-selectable) ── */
+:root[data-accent='blue']   { --accent: #2D7FF9; --accent-hover: #1E6FE0; --accent-soft: #E4F1FB; }
+:root[data-accent='green']  { --accent: #22A565; --accent-hover: #1B8E56; --accent-soft: #E6F6EC; }
+:root[data-accent='red']    { --accent: #E5484D; --accent-hover: #D13A3F; --accent-soft: #FCE9EC; }
+:root[data-accent='amber']  { --accent: #B4790B; --accent-hover: #9C6809; --accent-soft: #FEF3C7; }
+:root[data-accent='purple'] { --accent: #8B5CF6; --accent-hover: #7A4CE0; --accent-soft: #F1E9FB; }
+:root[data-theme='dark'][data-accent='blue']   { --accent: #5AA0FF; --accent-soft: #16283F; }
+:root[data-theme='dark'][data-accent='green']  { --accent: #3DBE7E; --accent-soft: #133024; }
+:root[data-theme='dark'][data-accent='red']    { --accent: #FF6369; --accent-soft: #3A1E20; }
+:root[data-theme='dark'][data-accent='amber']  { --accent: #E0A93A; --accent-soft: #35290F; }
+:root[data-theme='dark'][data-accent='purple'] { --accent: #A78BFA; --accent-soft: #241C3A; }
+
+/* ── Density ── */
+:root[data-density='compact'] {
+  --card-pad: 12px;
+  --row-pad-y: 5px;
+  --list-gap: 10px;
+}
