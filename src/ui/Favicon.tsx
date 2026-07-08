@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { faviconUrl, getDomain, tileColor, firstLetter } from '@/lib/url'
+import { useSettings } from '@/state/settings'
 import styles from './Favicon.module.css'
 
 interface Props {
@@ -10,10 +11,11 @@ interface Props {
 
 export function Favicon({ url, title, size = 22 }: Props) {
   const [failed, setFailed] = useState(false)
+  const faviconFetch = useSettings((s) => s.faviconFetch)
   const src = faviconUrl(url)
   const dim = { width: size, height: size }
 
-  if (!src || failed) {
+  if (!src || failed || !faviconFetch) {
     const { bg, fg } = tileColor(getDomain(url) || title)
     return (
       <span

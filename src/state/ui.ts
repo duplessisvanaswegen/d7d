@@ -15,6 +15,10 @@ interface UIState {
   query: string
   setQuery: (q: string) => void
 
+  optionsOpen: boolean
+  openOptions: () => void
+  closeOptions: () => void
+
   collapsedGroups: Set<ID>
   toggleGroup: (id: ID) => void
 }
@@ -32,6 +36,10 @@ export const useUI = create<UIState>((set) => ({
 
   query: '',
   setQuery: (q) => set({ query: q }),
+
+  optionsOpen: false,
+  openOptions: () => set({ optionsOpen: true }),
+  closeOptions: () => set({ optionsOpen: false }),
 
   collapsedGroups: new Set<ID>(),
   toggleGroup: (id) =>

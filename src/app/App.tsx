@@ -3,6 +3,7 @@ import { BookmarksPanel } from '@/features/bookmarks/BookmarksPanel'
 import { NotesPanel } from '@/features/notes/NotesPanel'
 import { BookmarkModal } from '@/features/bookmarks/BookmarkModal'
 import { NoteModal } from '@/features/notes/NoteModal'
+import { OptionsModal } from '@/features/options/OptionsModal'
 import styles from './App.module.css'
 
 export function App() {
@@ -15,6 +16,7 @@ export function App() {
       </div>
       <BookmarkModal />
       <NoteModal />
+      <OptionsModal />
     </div>
   )
 }

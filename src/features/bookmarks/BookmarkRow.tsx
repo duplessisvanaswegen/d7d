@@ -2,6 +2,7 @@ import { Pencil, Link as LinkIcon, ExternalLink, Trash2 } from 'lucide-react'
 import { Menu, type MenuItem } from '@/ui/Menu'
 import { Favicon } from '@/ui/Favicon'
 import { useUI } from '@/state/ui'
+import { useSettings } from '@/state/settings'
 import { deleteBookmark } from '@/db/repo'
 import { getDomain } from '@/lib/url'
 import type { Bookmark } from '@/types/models'
@@ -9,7 +10,9 @@ import styles from './BookmarkRow.module.css'
 
 export function BookmarkRow({ bookmark }: { bookmark: Bookmark }) {
   const openEdit = useUI((s) => s.openEditBookmark)
-  const open = () => window.open(bookmark.url, '_blank', 'noopener,noreferrer')
+  const openLinks = useSettings((s) => s.openLinks)
+  const open = () =>
+    window.open(bookmark.url, openLinks === 'new' ? '_blank' : '_self', 'noopener,noreferrer')
 
   const items: MenuItem[] = [
     { label: 'Edit', icon: Pencil, onClick: () => openEdit(bookmark.id) },

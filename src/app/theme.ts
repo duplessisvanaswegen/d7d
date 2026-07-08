@@ -42,12 +42,3 @@ export function initTheme(): void {
     if (cur.theme === 'system') applyAppearance(cur)
   })
 }
-
-/** Dev/temporary affordance for Slice 0 — cycles dark → light → system. */
-export function cycleTheme(): ThemePref {
-  const cur = loadAppearance()
-  const order: ThemePref[] = ['dark', 'light', 'system']
-  const next = order[(order.indexOf(cur.theme) + 1) % order.length]
-  applyAppearance({ ...cur, theme: next })
-  return next
-}
