@@ -2,7 +2,7 @@ import { db } from './db'
 import { uid, now } from '@/lib/id'
 import { normalizeUrl } from '@/lib/url'
 import { UNCATEGORISED, UNCATEGORISED_NAME } from './init'
-import type { Bookmark, Category, ID, ItemType } from '@/types/models'
+import type { Bookmark, Category, ID, ItemType, Note, NoteColor } from '@/types/models'
 
 const norm = (s: string) => s.trim().toLowerCase()
 
@@ -93,4 +93,68 @@ export async function deleteBookmark(id: ID): Promise<void> {
 export async function findBookmarkByUrl(url: string): Promise<Bookmark | undefined> {
   const normalized = normalizeUrl(url)
   return db.bookmarks.filter((b) => b.url === normalized).first()
+}
+
+// ── Notes ───────────────────────────────────────────────────
+export interface NoteForm {
+  title: string
+  body: string
+  color: NoteColor
+  categoryName: string
+  tagNames: string[]
+  pinned: boolean
+}
+
+async function nextNoteOrder(): Promise<number> {
+  const last = await db.notes.orderBy('order').last()
+  return (last?.order ?? 0) + 1
+}
+
+export async function saveNoteForm(form: NoteForm, editingId?: ID | null): Promise<void> {
+  const categoryId = await ensureCategory('note', form.categoryName)
+  const tagIds = await ensureTags('note', form.tagNames)
+  const title = form.title.trim() || undefined
+  const body = form.body.trim()
+  if (editingId) {
+    await db.notes.update(editingId, {
+      title,
+      body,
+      color: form.color,
+      categoryId,
+      tagIds,
+      pinned: form.pinned,
+      updatedAt: now(),
+    })
+  } else {
+    const ts = now()
+    const note: Note = {
+      id: uid(),
+      title,
+      body,
+      color: form.color,
+      categoryId,
+      tagIds,
+      pinned: form.pinned,
+      order: await nextNoteOrder(),
+      createdAt: ts,
+      updatedAt: ts,
+    }
+    await db.notes.add(note)
+  }
+}
+
+export async function deleteNote(id: ID): Promise<void> {
+  await db.notes.delete(id)
+}
+
+export async function toggleNotePin(id: ID): Promise<void> {
+  const n = await db.notes.get(id)
+  if (n) await db.notes.update(id, { pinned: !n.pinned, updatedAt: now() })
+}
+
+export async function duplicateNote(id: ID): Promise<void> {
+  const n = await db.notes.get(id)
+  if (!n) return
+  const ts = now()
+  await db.notes.add({ ...n, id: uid(), order: await nextNoteOrder(), pinned: false, createdAt: ts, updatedAt: ts })
 }

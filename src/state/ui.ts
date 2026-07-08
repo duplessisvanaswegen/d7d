@@ -7,6 +7,11 @@ interface UIState {
   openEditBookmark: (id: ID) => void
   closeBookmarkModal: () => void
 
+  noteModal: { open: boolean; editingId: ID | null }
+  openAddNote: () => void
+  openEditNote: (id: ID) => void
+  closeNoteModal: () => void
+
   collapsedGroups: Set<ID>
   toggleGroup: (id: ID) => void
 }
@@ -16,6 +21,11 @@ export const useUI = create<UIState>((set) => ({
   openAddBookmark: () => set({ bookmarkModal: { open: true, editingId: null } }),
   openEditBookmark: (id) => set({ bookmarkModal: { open: true, editingId: id } }),
   closeBookmarkModal: () => set({ bookmarkModal: { open: false, editingId: null } }),
+
+  noteModal: { open: false, editingId: null },
+  openAddNote: () => set({ noteModal: { open: true, editingId: null } }),
+  openEditNote: (id) => set({ noteModal: { open: true, editingId: id } }),
+  closeNoteModal: () => set({ noteModal: { open: false, editingId: null } }),
 
   collapsedGroups: new Set<ID>(),
   toggleGroup: (id) =>

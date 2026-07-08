@@ -2,6 +2,7 @@ import { TopBar } from './TopBar'
 import { BookmarksPanel } from '@/features/bookmarks/BookmarksPanel'
 import { NotesPanel } from '@/features/notes/NotesPanel'
 import { BookmarkModal } from '@/features/bookmarks/BookmarkModal'
+import { NoteModal } from '@/features/notes/NoteModal'
 import styles from './App.module.css'
 
 export function App() {
@@ -13,6 +14,7 @@ export function App() {
         <NotesPanel />
       </div>
       <BookmarkModal />
+      <NoteModal />
     </div>
   )
 }
