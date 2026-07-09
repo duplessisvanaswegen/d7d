@@ -50,6 +50,12 @@ const settings = z.object({
   prefs: z.object({
     faviconFetch: z.boolean(),
     openLinks: z.enum(['new', 'same']),
+    weatherUnits: z.enum(['c', 'f']).optional(),
+    clockFormat: z.enum(['24', '12']).optional(),
+    refreshMins: z.number().optional(),
+    locations: z
+      .array(z.object({ id: z.string(), label: z.string(), lat: z.number(), lon: z.number(), timezone: z.string() }))
+      .optional(),
   }),
 })
 

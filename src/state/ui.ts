@@ -19,6 +19,9 @@ interface UIState {
   openOptions: () => void
   closeOptions: () => void
 
+  mobileTab: 'bookmarks' | 'notes'
+  setMobileTab: (t: 'bookmarks' | 'notes') => void
+
   collapsedGroups: Set<ID>
   toggleGroup: (id: ID) => void
 }
@@ -40,6 +43,9 @@ export const useUI = create<UIState>((set) => ({
   optionsOpen: false,
   openOptions: () => set({ optionsOpen: true }),
   closeOptions: () => set({ optionsOpen: false }),
+
+  mobileTab: 'bookmarks',
+  setMobileTab: (t) => set({ mobileTab: t }),
 
   collapsedGroups: new Set<ID>(),
   toggleGroup: (id) =>

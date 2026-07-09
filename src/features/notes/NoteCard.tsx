@@ -1,7 +1,9 @@
-import { Pencil, Copy, CopyPlus, Pin, Trash2 } from 'lucide-react'
+import { Pencil, Copy, CopyPlus, Pin, ArrowUp, ArrowDown, Trash2 } from 'lucide-react'
 import { Menu, type MenuItem } from '@/ui/Menu'
+import { db } from '@/db/db'
 import { useUI } from '@/state/ui'
-import { deleteNote, duplicateNote, toggleNotePin } from '@/db/repo'
+import { deleteNote, duplicateNote, toggleNotePin, moveNote } from '@/db/repo'
+import { toast } from '@/state/toast'
 import { noteBg } from './colors'
 import type { Note } from '@/types/models'
 import styles from './NoteCard.module.css'
@@ -17,12 +19,19 @@ export function NoteCard({ note, categoryName, tagNames }: Props) {
   const meta = [categoryName, ...tagNames.map((t) => `#${t}`)].filter(Boolean).join('  ·  ')
   const copy = () => void navigator.clipboard?.writeText([note.title, note.body].filter(Boolean).join('\n'))
 
+  const del = () => {
+    void deleteNote(note.id)
+    toast({ message: 'Note deleted', actionLabel: 'Undo', onAction: () => void db.notes.add(note) })
+  }
+
   const items: MenuItem[] = [
     { label: 'Edit', icon: Pencil, onClick: () => openEdit(note.id) },
     { label: 'Copy to clipboard', icon: Copy, onClick: copy },
     { label: 'Duplicate', icon: CopyPlus, onClick: () => void duplicateNote(note.id) },
     { label: note.pinned ? 'Unpin' : 'Pin', icon: Pin, onClick: () => void toggleNotePin(note.id) },
-    { label: 'Delete', icon: Trash2, danger: true, onClick: () => void deleteNote(note.id) },
+    { label: 'Move up', icon: ArrowUp, onClick: () => void moveNote(note.id, -1) },
+    { label: 'Move down', icon: ArrowDown, onClick: () => void moveNote(note.id, 1) },
+    { label: 'Delete', icon: Trash2, danger: true, onClick: del },
   ]
 
   return (

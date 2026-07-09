@@ -89,6 +89,20 @@ export async function deleteBookmark(id: ID): Promise<void> {
   await db.bookmarks.delete(id)
 }
 
+/** Swap a bookmark with its neighbour (same category) in the sort order. */
+export async function moveBookmark(id: ID, dir: -1 | 1): Promise<void> {
+  const bm = await db.bookmarks.get(id)
+  if (!bm) return
+  const siblings = (await db.bookmarks.where('categoryId').equals(bm.categoryId).toArray()).sort(
+    (a, b) => a.order - b.order,
+  )
+  const i = siblings.findIndex((s) => s.id === id)
+  const other = siblings[i + dir]
+  if (!other) return
+  await db.bookmarks.update(bm.id, { order: other.order, updatedAt: now() })
+  await db.bookmarks.update(other.id, { order: bm.order, updatedAt: now() })
+}
+
 /** Is this URL already saved? (duplicate-URL nudge in the add form.) */
 export async function findBookmarkByUrl(url: string): Promise<Bookmark | undefined> {
   const normalized = normalizeUrl(url)
@@ -157,4 +171,16 @@ export async function duplicateNote(id: ID): Promise<void> {
   if (!n) return
   const ts = now()
   await db.notes.add({ ...n, id: uid(), order: await nextNoteOrder(), pinned: false, createdAt: ts, updatedAt: ts })
+}
+
+/** Swap a note with its neighbour within the same pinned group. */
+export async function moveNote(id: ID, dir: -1 | 1): Promise<void> {
+  const note = await db.notes.get(id)
+  if (!note) return
+  const group = (await db.notes.toArray()).filter((n) => n.pinned === note.pinned).sort((a, b) => a.order - b.order)
+  const i = group.findIndex((n) => n.id === id)
+  const other = group[i + dir]
+  if (!other) return
+  await db.notes.update(note.id, { order: other.order, updatedAt: now() })
+  await db.notes.update(other.id, { order: note.order, updatedAt: now() })
 }

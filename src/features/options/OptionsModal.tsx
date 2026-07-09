@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
-import { X, Palette, Bookmark, Database, Upload, Download, FileCode, Info } from 'lucide-react'
+import { X, Palette, Bookmark, Database, CloudSun, RefreshCw, Upload, Download, FileCode, Info } from 'lucide-react'
 import { useUI } from '@/state/ui'
-import { useSettings } from '@/state/settings'
+import { useSettings, type TempUnit, type ClockFormat } from '@/state/settings'
+import { geocode, type GeoResult } from '@/features/weather/api'
+import { useWeather } from '@/features/weather/store'
 import {
   loadAppearance,
   applyAppearance,
@@ -24,10 +26,11 @@ import {
 import type { ExportFile } from '@/features/importexport/schema'
 import styles from './OptionsModal.module.css'
 
-type Tab = 'appearance' | 'bookmarks' | 'data'
+type Tab = 'appearance' | 'bookmarks' | 'weather' | 'data'
 const TABS: { id: Tab; label: string; icon: typeof Palette }[] = [
   { id: 'appearance', label: 'Appearance', icon: Palette },
   { id: 'bookmarks', label: 'Bookmarks', icon: Bookmark },
+  { id: 'weather', label: 'Weather & Clocks', icon: CloudSun },
   { id: 'data', label: 'Data & Backup', icon: Database },
 ]
 
@@ -70,6 +73,7 @@ export function OptionsModal() {
           <div className={styles.content}>
             {tab === 'appearance' && <AppearanceTab />}
             {tab === 'bookmarks' && <BookmarksTab />}
+            {tab === 'weather' && <WeatherTab />}
             {tab === 'data' && <DataTab onDone={close} />}
           </div>
         </div>
@@ -191,6 +195,121 @@ function BookmarksTab() {
           ]}
           value={openLinks}
           onChange={setOpenLinks}
+        />
+      </Row>
+    </div>
+  )
+}
+
+// ── Weather & Clocks ────────────────────────────────────────
+function WeatherTab() {
+  const { locations, weatherUnits, clockFormat, refreshMins, addLocation, removeLocation, setWeatherUnits, setClockFormat, setRefreshMins } =
+    useSettings()
+  const refresh = useWeather((s) => s.refresh)
+  const [q, setQ] = useState('')
+  const [results, setResults] = useState<GeoResult[] | null>(null)
+  const [searching, setSearching] = useState(false)
+
+  async function search() {
+    if (!q.trim()) return
+    setSearching(true)
+    setResults(await geocode(q))
+    setSearching(false)
+  }
+  function add(r: GeoResult) {
+    addLocation({ label: r.name, lat: r.latitude, lon: r.longitude, timezone: r.timezone })
+    setQ('')
+    setResults(null)
+  }
+
+  return (
+    <div className={styles.tab}>
+      <div className={styles.tabHead}>
+        <h3 className={styles.tabTitle}>Weather &amp; Clocks</h3>
+        <button className={styles.ghost} onClick={() => void refresh(locations)}>
+          <RefreshCw size={14} /> Refresh now
+        </button>
+      </div>
+
+      {locations.length > 0 && (
+        <div className={styles.locList}>
+          {locations.map((l) => (
+            <div key={l.id} className={styles.locRow}>
+              <div className={styles.rowLabel}>
+                <span className={styles.rowTitle}>{l.label}</span>
+                <span className={styles.rowSub}>{l.timezone}</span>
+              </div>
+              <button className={styles.locRemove} onClick={() => removeLocation(l.id)} aria-label={`Remove ${l.label}`}>
+                <X size={15} />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div className={styles.addLoc}>
+        <input
+          className={styles.addInput}
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault()
+              void search()
+            }
+          }}
+          placeholder="Add a city…"
+        />
+        <button className={styles.ghost} onClick={() => void search()} disabled={searching}>
+          Search
+        </button>
+      </div>
+
+      {results &&
+        (results.length ? (
+          <div className={styles.locList}>
+            {results.map((r, i) => (
+              <button key={i} className={styles.resultRow} onClick={() => add(r)}>
+                <span className={styles.rowTitle}>{r.name}</span>
+                <span className={styles.rowSub}>{[r.admin1, r.country].filter(Boolean).join(', ')}</span>
+              </button>
+            ))}
+          </div>
+        ) : (
+          <span className={styles.rowSub}>No matches.</span>
+        ))}
+
+      <div className={styles.divider} />
+
+      <Row title="Temperature">
+        <Segmented<TempUnit>
+          options={[
+            { value: 'c', label: '°C' },
+            { value: 'f', label: '°F' },
+          ]}
+          value={weatherUnits}
+          onChange={setWeatherUnits}
+        />
+      </Row>
+      <Row title="Clock format">
+        <Segmented<ClockFormat>
+          options={[
+            { value: '24', label: '24-hour' },
+            { value: '12', label: '12-hour' },
+          ]}
+          value={clockFormat}
+          onChange={setClockFormat}
+        />
+      </Row>
+      <Row title="Auto-refresh">
+        <Segmented
+          options={[
+            { value: '15', label: '15 min' },
+            { value: '30', label: '30 min' },
+            { value: '60', label: '60 min' },
+          ]}
+          value={String(refreshMins)}
+          onChange={(v) => setRefreshMins(Number(v))}
         />
       </Row>
     </div>

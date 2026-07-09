@@ -96,6 +96,73 @@
   font-weight: 600;
   color: var(--text-primary);
 }
+.tabHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.locList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.locRow,
+.resultRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  background: var(--subtle);
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  text-align: left;
+  width: 100%;
+}
+.resultRow {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  cursor: pointer;
+}
+.resultRow:hover {
+  border-color: var(--accent);
+}
+.locRemove {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+  color: var(--text-tertiary);
+  flex-shrink: 0;
+}
+.locRemove:hover {
+  background: var(--surface);
+  color: var(--text-secondary);
+}
+.addLoc {
+  display: flex;
+  gap: 8px;
+}
+.addInput {
+  flex: 1;
+  min-width: 0;
+  padding: 9px 12px;
+  background: var(--subtle);
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  outline: none;
+  font-size: 13px;
+  color: var(--text-primary);
+}
+.addInput:focus {
+  border-color: var(--accent);
+}
+.addInput::placeholder {
+  color: var(--text-tertiary);
+}
 .row {
   display: flex;
   align-items: center;

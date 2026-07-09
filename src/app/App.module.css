@@ -12,9 +12,15 @@
   overflow: hidden;
 }
 
-/* Mobile: stack (tabbed layout arrives in a later slice) */
+/* Mobile: tabbed — show one panel at a time */
 @media (max-width: 860px) {
   .body {
     flex-direction: column;
+  }
+  .body[data-mobile-tab='bookmarks'] > section:nth-child(2) {
+    display: none;
+  }
+  .body[data-mobile-tab='notes'] > section:nth-child(1) {
+    display: none;
   }
 }
