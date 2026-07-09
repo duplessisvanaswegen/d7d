@@ -1,6 +1,4 @@
 .card {
-  break-inside: avoid;
-  margin-bottom: 12px;
   display: flex;
   flex-direction: column;
   gap: 9px;
@@ -36,6 +34,23 @@
   display: flex;
   align-items: center;
   gap: 6px;
+}
+.handle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--note-text);
+  opacity: 0;
+  cursor: grab;
+  touch-action: none;
+  flex-shrink: 0;
+  margin-left: -3px;
+}
+.card:hover .handle {
+  opacity: 0.55;
+}
+.handle:active {
+  cursor: grabbing;
 }
 .title {
   flex: 1;

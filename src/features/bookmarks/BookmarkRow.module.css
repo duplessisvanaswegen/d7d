@@ -12,6 +12,24 @@
 .selected {
   background: var(--accent-soft);
 }
+.handle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  margin-left: -4px;
+  color: var(--text-tertiary);
+  cursor: grab;
+  opacity: 0;
+  touch-action: none;
+  flex-shrink: 0;
+}
+.row:hover .handle {
+  opacity: 1;
+}
+.handle:active {
+  cursor: grabbing;
+}
 .check {
   color: var(--text-tertiary);
   flex-shrink: 0;

@@ -1,4 +1,5 @@
-import { Pencil, Copy, CopyPlus, Pin, ArrowUp, ArrowDown, Trash2, CircleCheckBig, Circle } from 'lucide-react'
+import type { HTMLAttributes } from 'react'
+import { Pencil, Copy, CopyPlus, Pin, ArrowUp, ArrowDown, Trash2, CircleCheckBig, Circle, GripVertical } from 'lucide-react'
 import { Menu, type MenuItem } from '@/ui/Menu'
 import { db } from '@/db/db'
 import { useUI } from '@/state/ui'
@@ -12,9 +13,10 @@ interface Props {
   note: Note
   categoryName?: string
   tagNames: string[]
+  handleProps?: HTMLAttributes<HTMLButtonElement>
 }
 
-export function NoteCard({ note, categoryName, tagNames }: Props) {
+export function NoteCard({ note, categoryName, tagNames, handleProps }: Props) {
   const openEdit = useUI((s) => s.openEditNote)
   const selecting = useUI((s) => s.selection.mode === 'note')
   const selected = useUI((s) => s.selection.ids.has(note.id))
@@ -44,6 +46,11 @@ export function NoteCard({ note, categoryName, tagNames }: Props) {
       onClick={selecting ? () => toggleSelected(note.id) : () => openEdit(note.id)}
     >
       <div className={styles.head}>
+        {handleProps && !selecting && (
+          <button className={styles.handle} {...handleProps} onClick={(e) => e.stopPropagation()} aria-label="Drag to reorder">
+            <GripVertical size={13} />
+          </button>
+        )}
         {selecting &&
           (selected ? <CircleCheckBig size={16} className={styles.check} /> : <Circle size={16} className={styles.check} />)}
         {note.title ? <span className={styles.title}>{note.title}</span> : <span className={styles.spacer} />}

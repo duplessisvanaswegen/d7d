@@ -1,4 +1,5 @@
-import { Pencil, Link as LinkIcon, ExternalLink, ArrowUp, ArrowDown, Trash2, CircleCheckBig, Circle } from 'lucide-react'
+import type { HTMLAttributes } from 'react'
+import { Pencil, Link as LinkIcon, ExternalLink, ArrowUp, ArrowDown, Trash2, CircleCheckBig, Circle, GripVertical } from 'lucide-react'
 import { Menu, type MenuItem } from '@/ui/Menu'
 import { Favicon } from '@/ui/Favicon'
 import { db } from '@/db/db'
@@ -10,7 +11,13 @@ import { getDomain } from '@/lib/url'
 import type { Bookmark } from '@/types/models'
 import styles from './BookmarkRow.module.css'
 
-export function BookmarkRow({ bookmark }: { bookmark: Bookmark }) {
+export function BookmarkRow({
+  bookmark,
+  handleProps,
+}: {
+  bookmark: Bookmark
+  handleProps?: HTMLAttributes<HTMLButtonElement>
+}) {
   const openEdit = useUI((s) => s.openEditBookmark)
   const openLinks = useSettings((s) => s.openLinks)
   const selecting = useUI((s) => s.selection.mode === 'bookmark')
@@ -44,6 +51,11 @@ export function BookmarkRow({ bookmark }: { bookmark: Bookmark }) {
         if (e.key === 'Enter') selecting ? toggleSelected(bookmark.id) : open()
       }}
     >
+      {handleProps && !selecting && (
+        <button className={styles.handle} {...handleProps} onClick={(e) => e.stopPropagation()} aria-label="Drag to reorder">
+          <GripVertical size={14} />
+        </button>
+      )}
       {selecting &&
         (selected ? (
           <CircleCheckBig size={17} className={styles.checkOn} />

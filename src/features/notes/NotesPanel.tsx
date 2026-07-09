@@ -1,13 +1,24 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { StickyNote, Plus, SearchX, CircleCheck } from 'lucide-react'
+import { DndContext, closestCenter, type DragEndEvent } from '@dnd-kit/core'
+import { SortableContext, rectSortingStrategy, arrayMove, useSortable } from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
 import { db } from '@/db/db'
 import { useUI } from '@/state/ui'
 import { EmptyState } from '@/ui/EmptyState'
 import { NoteCard } from './NoteCard'
 import { parseQuery, isBlank } from '@/features/search/parser'
 import { itemMatches, type NameSets } from '@/features/search/match'
+import { reorderNotes } from '@/db/repo'
+import { useDndSensors } from '@/lib/dnd'
 import type { Note, Category, Tag } from '@/types/models'
 import styles from './NotesPanel.module.css'
+
+interface NoteWithNames {
+  note: Note
+  categoryName?: string
+  tagNames: string[]
+}
 
 export function NotesPanel() {
   const openAdd = useUI((s) => s.openAddNote)
@@ -40,6 +51,18 @@ export function NotesPanel() {
   const sorted = [...filtered].sort(
     (a, b) => (b.note.pinned ? 1 : 0) - (a.note.pinned ? 1 : 0) || a.note.order - b.note.order,
   )
+
+  const sensors = useDndSensors()
+  const sortable = !searching && !selecting
+  const onDragEnd = (e: DragEndEvent) => {
+    const { active, over } = e
+    if (!over || active.id === over.id) return
+    const ids = sorted.map((x) => x.note.id)
+    const oldIndex = ids.indexOf(active.id as string)
+    const newIndex = ids.indexOf(over.id as string)
+    if (oldIndex < 0 || newIndex < 0) return
+    void reorderNotes(arrayMove(ids, oldIndex, newIndex))
+  }
 
   return (
     <section className={styles.panel}>
@@ -76,12 +99,41 @@ export function NotesPanel() {
           <span>No notes match your search.</span>
         </div>
       ) : (
-        <div className={styles.grid}>
-          {sorted.map(({ note, categoryName, tagNames }) => (
-            <NoteCard key={note.id} note={note} categoryName={categoryName} tagNames={tagNames} />
-          ))}
+        <div className={styles.gridWrap}>
+          {sortable ? (
+            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
+              <SortableContext items={sorted.map((x) => x.note.id)} strategy={rectSortingStrategy}>
+                <div className={styles.grid}>
+                  {sorted.map((x) => (
+                    <SortableNoteCard key={x.note.id} item={x} />
+                  ))}
+                </div>
+              </SortableContext>
+            </DndContext>
+          ) : (
+            <div className={styles.grid}>
+              {sorted.map(({ note, categoryName, tagNames }) => (
+                <NoteCard key={note.id} note={note} categoryName={categoryName} tagNames={tagNames} />
+              ))}
+            </div>
+          )}
         </div>
       )}
     </section>
+  )
+}
+
+function SortableNoteCard({ item }: { item: NoteWithNames }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: item.note.id })
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.4 : undefined,
+    zIndex: isDragging ? 1 : undefined,
+  }
+  return (
+    <div ref={setNodeRef} style={style}>
+      <NoteCard note={item.note} categoryName={item.categoryName} tagNames={item.tagNames} handleProps={{ ...attributes, ...listeners }} />
+    </div>
   )
 }

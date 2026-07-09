@@ -141,6 +141,19 @@ export async function deleteBookmark(id: ID): Promise<void> {
   await db.bookmarks.delete(id)
 }
 
+/** Persist a new order for a set of ids (drag-and-drop): order = index. */
+export async function reorderBookmarks(ids: ID[]): Promise<void> {
+  await db.transaction('rw', db.bookmarks, async () => {
+    for (let i = 0; i < ids.length; i++) await db.bookmarks.update(ids[i], { order: i, updatedAt: now() })
+  })
+}
+
+export async function reorderNotes(ids: ID[]): Promise<void> {
+  await db.transaction('rw', db.notes, async () => {
+    for (let i = 0; i < ids.length; i++) await db.notes.update(ids[i], { order: i, updatedAt: now() })
+  })
+}
+
 /** Swap a bookmark with its neighbour (same category) in the sort order. */
 export async function moveBookmark(id: ID, dir: -1 | 1): Promise<void> {
   const bm = await db.bookmarks.get(id)
