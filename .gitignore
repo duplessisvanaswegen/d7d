@@ -8,3 +8,4 @@ coverage
 dev-dist
 *.log
 *.tsbuildinfo
+.claude/settings.local.json

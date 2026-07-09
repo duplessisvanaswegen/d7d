@@ -4,6 +4,13 @@
   "version": "0.1.0",
   "type": "module",
   "description": "d7d — a client-only personal dashboard PWA (bookmarks, notes, search).",
+  "author": "Duplessis van Aswegen (https://github.com/duplessisvanaswegen)",
+  "license": "MIT",
+  "homepage": "https://d7d.pages.dev",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/duplessisvanaswegen/d7d"
+  },
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
