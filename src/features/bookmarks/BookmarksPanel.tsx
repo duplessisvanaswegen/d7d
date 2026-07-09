@@ -146,7 +146,8 @@ function CategoryGroup({
 function SortableBookmark({ bookmark }: { bookmark: Bookmark }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: bookmark.id })
   const style = {
-    transform: CSS.Transform.toString(transform),
+    // Translate only — avoid any scale distortion during drag.
+    transform: CSS.Translate.toString(transform),
     transition,
     opacity: isDragging ? 0.4 : undefined,
     position: 'relative' as const,

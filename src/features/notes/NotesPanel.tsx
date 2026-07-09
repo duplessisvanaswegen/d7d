@@ -126,7 +126,8 @@ export function NotesPanel() {
 function SortableNoteCard({ item }: { item: NoteWithNames }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: item.note.id })
   const style = {
-    transform: CSS.Transform.toString(transform),
+    // Translate only — never scale (cards vary in size, so CSS.Transform would distort them).
+    transform: CSS.Translate.toString(transform),
     transition,
     opacity: isDragging ? 0.4 : undefined,
     zIndex: isDragging ? 1 : undefined,
