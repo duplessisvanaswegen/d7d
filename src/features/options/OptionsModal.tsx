@@ -36,7 +36,7 @@ type Tab = 'appearance' | 'bookmarks' | 'notes' | 'weather' | 'data'
 const TABS: { id: Tab; label: string; icon: typeof Palette }[] = [
   { id: 'appearance', label: 'Appearance', icon: Palette },
   { id: 'bookmarks', label: 'Bookmarks', icon: Bookmark },
-  { id: 'notes', label: 'Notes', icon: StickyNote },
+  { id: 'notes', label: 'Notes / Tasks / Events', icon: StickyNote },
   { id: 'weather', label: 'Weather & Clocks', icon: CloudSun },
   { id: 'data', label: 'Data & Backup', icon: Database },
 ]
@@ -214,7 +214,7 @@ function BookmarksTab() {
 function NotesTab() {
   return (
     <div className={styles.tab}>
-      <h3 className={styles.tabTitle}>Notes</h3>
+      <h3 className={styles.tabTitle}>Notes / Tasks / Events</h3>
       <Manage type="note" />
     </div>
   )
