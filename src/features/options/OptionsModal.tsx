@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { X, Palette, Bookmark, StickyNote, Database, CloudSun, RefreshCw, Upload, Download, FileCode, Info, Pencil, Trash2, Check } from 'lucide-react'
+import { X, Palette, Bookmark, StickyNote, Database, CloudSun, RefreshCw, Upload, Download, FileCode, Info, Pencil, Trash2, Check, Cloud, Copy } from 'lucide-react'
 import { db } from '@/db/db'
 import { renameCategory, deleteCategory, renameTag, deleteTag } from '@/db/repo'
 import { Modal } from '@/ui/Modal'
@@ -30,14 +30,18 @@ import {
   type Diff,
 } from '@/features/importexport/io'
 import type { ExportFile } from '@/features/importexport/schema'
+import { useSync, type SyncMode, type SyncStatus } from '@/sync/config'
+import { connect, disconnect, type ConnectResult } from '@/sync/connect'
+import { setupSql } from '@/sync/schemaSql'
 import styles from './OptionsModal.module.css'
 
-type Tab = 'appearance' | 'bookmarks' | 'notes' | 'weather' | 'data'
+type Tab = 'appearance' | 'bookmarks' | 'notes' | 'weather' | 'sync' | 'data'
 const TABS: { id: Tab; label: string; icon: typeof Palette }[] = [
   { id: 'appearance', label: 'Appearance', icon: Palette },
   { id: 'bookmarks', label: 'Bookmarks', icon: Bookmark },
   { id: 'notes', label: 'Notes / Tasks / Events', icon: StickyNote },
   { id: 'weather', label: 'Weather & Clocks', icon: CloudSun },
+  { id: 'sync', label: 'Sync', icon: Cloud },
   { id: 'data', label: 'Data & Backup', icon: Database },
 ]
 
@@ -82,6 +86,7 @@ export function OptionsModal() {
             {tab === 'bookmarks' && <BookmarksTab />}
             {tab === 'notes' && <NotesTab />}
             {tab === 'weather' && <WeatherTab />}
+            {tab === 'sync' && <SyncTab />}
             {tab === 'data' && <DataTab onDone={close} />}
           </div>
         </div>
@@ -507,6 +512,189 @@ function WeatherTab() {
           onChange={(v) => setRefreshMins(Number(v))}
         />
       </Row>
+    </div>
+  )
+}
+
+// ── Sync ────────────────────────────────────────────────────
+const STATUS_LABEL: Record<SyncStatus, string> = {
+  off: 'Off',
+  idle: 'Up to date',
+  syncing: 'Syncing…',
+  offline: 'Offline — will retry',
+  error: 'Error',
+  'signed-out': 'Signed out — re-enter your password',
+}
+const STATUS_DOT: Record<SyncStatus, string> = {
+  off: styles.dotOff,
+  idle: styles.dotIdle,
+  syncing: styles.dotSync,
+  offline: styles.dotOff,
+  error: styles.dotErr,
+  'signed-out': styles.dotErr,
+}
+
+function agoShort(ts: number | null): string {
+  if (!ts) return 'never'
+  const s = Math.floor((Date.now() - ts) / 1000)
+  if (s < 60) return 'just now'
+  if (s < 3600) return `${Math.floor(s / 60)} min ago`
+  if (s < 86_400) return `${Math.floor(s / 3600)} h ago`
+  return `${Math.floor(s / 86_400)} d ago`
+}
+
+function SyncTab() {
+  const config = useSync((s) => s.config)
+  const status = useSync((s) => s.status)
+  const lastSyncAt = useSync((s) => s.lastSyncAt)
+  const lastError = useSync((s) => s.lastError)
+
+  if (config.enabled) {
+    return <SyncConnected status={status} lastSyncAt={lastSyncAt} lastError={lastError} />
+  }
+  return <SyncSetup />
+}
+
+function SyncConnected({ status, lastSyncAt, lastError }: { status: SyncStatus; lastSyncAt: number | null; lastError: string | null }) {
+  const config = useSync((s) => s.config)
+  const [busy, setBusy] = useState(false)
+
+  async function onDisconnect() {
+    if (!window.confirm('Disconnect sync from this device? Your local data stays; only the connection is removed.')) return
+    setBusy(true)
+    await disconnect()
+    setBusy(false)
+  }
+
+  return (
+    <div className={styles.tab}>
+      <h3 className={styles.tabTitle}>Sync</h3>
+      <div className={styles.statusRow}>
+        <span className={`${styles.dot} ${STATUS_DOT[status]}`} />
+        <span className={styles.rowTitle}>{STATUS_LABEL[status]}</span>
+        <span className={styles.rowSub}>· last synced {agoShort(lastSyncAt)}</span>
+      </div>
+      {lastError && (
+        <div className={styles.errorNote}>
+          <FileCode size={15} /> {lastError}
+        </div>
+      )}
+      <Row title="Supabase project" sub={config.url}>
+        <span className={styles.rowSub}>{config.mode === 'auth' ? 'Auth' : 'Simple'}</span>
+      </Row>
+      {config.mode === 'auth' && <Row title="Account" sub={config.email}>{null}</Row>}
+      <div className={styles.note}>
+        <Info size={15} />
+        <span>Sync runs in the background. Bookmarks, notes, categories and tags stay in step across your devices — settings and weather remain per-device. Export/import is still your offline backup.</span>
+      </div>
+      <div className={styles.divider} />
+      <Row title="Disconnect" sub="Stops sync and clears creds from this device. Local data is untouched.">
+        <button className={styles.danger} onClick={() => void onDisconnect()} disabled={busy}>
+          Disconnect
+        </button>
+      </Row>
+    </div>
+  )
+}
+
+function SyncSetup() {
+  const [url, setUrl] = useState('')
+  const [anonKey, setAnonKey] = useState('')
+  const [mode, setMode] = useState<SyncMode>('auth')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [result, setResult] = useState<ConnectResult | null>(null)
+  const [showSql, setShowSql] = useState(false)
+  const [copied, setCopied] = useState(false)
+
+  const sql = setupSql(mode)
+
+  async function onConnect() {
+    setBusy(true)
+    setResult(null)
+    const res = await connect({ url, anonKey, mode, email, password })
+    setResult(res)
+    if (!res.ok && res.needsSetup) setShowSql(true)
+    setBusy(false)
+  }
+
+  async function copySql() {
+    await navigator.clipboard?.writeText(sql)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 1500)
+  }
+
+  return (
+    <div className={styles.tab}>
+      <h3 className={styles.tabTitle}>Sync</h3>
+      <p className={styles.pitch}>
+        Optional cross-device sync you own. It needs a <b>free Supabase project</b> (you bring the URL + anon key); d7d
+        stores nothing. Local stays the source of truth — turn this off and nothing changes.
+      </p>
+
+      <div className={styles.field}>
+        <span className={styles.fieldLabel}>Supabase URL</span>
+        <input className={styles.addInput} value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://xxxx.supabase.co" spellCheck={false} />
+      </div>
+      <div className={styles.field}>
+        <span className={styles.fieldLabel}>Anon (public) key</span>
+        <input className={styles.addInput} value={anonKey} onChange={(e) => setAnonKey(e.target.value)} placeholder="eyJhbGci…" spellCheck={false} />
+      </div>
+
+      <Row title="Security" sub={mode === 'auth' ? 'Email + password sign-in; every row scoped to you (recommended).' : 'Anyone with your URL + key can read/write. Only for non-sensitive data.'}>
+        <Segmented<SyncMode>
+          options={[
+            { value: 'auth', label: 'Auth' },
+            { value: 'simple', label: 'Simple (less secure)' },
+          ]}
+          value={mode}
+          onChange={setMode}
+        />
+      </Row>
+
+      {mode === 'auth' && (
+        <>
+          <div className={styles.field}>
+            <span className={styles.fieldLabel}>Email</span>
+            <input className={styles.addInput} type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" autoComplete="username" spellCheck={false} />
+          </div>
+          <div className={styles.field}>
+            <span className={styles.fieldLabel}>Password</span>
+            <input className={styles.addInput} type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Set on first connect" autoComplete="current-password" />
+          </div>
+        </>
+      )}
+
+      {result && !result.ok && (
+        <div className={styles.errorNote}>
+          <FileCode size={15} /> {result.error}
+        </div>
+      )}
+
+      <div className={styles.actions}>
+        <button className={styles.ghost} onClick={() => setShowSql((v) => !v)}>
+          <FileCode size={14} /> {showSql ? 'Hide setup SQL' : 'Show setup SQL'}
+        </button>
+        <button className={styles.primary} onClick={() => void onConnect()} disabled={busy}>
+          {busy ? 'Connecting…' : 'Connect'}
+        </button>
+      </div>
+
+      {showSql && (
+        <div className={styles.field}>
+          <div className={styles.sqlHead}>
+            <span className={styles.fieldLabel}>Run this once in your Supabase SQL editor</span>
+            <button className={styles.ghost} onClick={() => void copySql()}>
+              {copied ? <Check size={14} /> : <Copy size={14} />} {copied ? 'Copied' : 'Copy'}
+            </button>
+          </div>
+          <pre className={styles.sql}>{sql}</pre>
+          <span className={styles.rowSub}>
+            You may re-run this after a d7d update if the tab asks for it. It is safe to run more than once.
+          </span>
+        </div>
+      )}
     </div>
   )
 }
