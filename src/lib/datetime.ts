@@ -13,6 +13,37 @@ export function parseFloating(s: string): Date {
   return new Date(y, m - 1, d)
 }
 
+/** 'YYYY-MM-DD' day-key for a LOCAL Date (matches the floating-string date part). */
+export function ymd(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
+/** First-of-month `n` months from `d` (day-of-month reset to 1). */
+export function addMonths(d: Date, n: number): Date {
+  return new Date(d.getFullYear(), d.getMonth() + n, 1)
+}
+
+/** "July 2026". */
+export function monthTitle(d: Date): string {
+  return d.toLocaleDateString([], { month: 'long', year: 'numeric' })
+}
+
+/** 42 local-midnight Dates (6 weeks × 7), Monday-start, covering the month of `anchor`. */
+export function monthMatrix(anchor: Date): Date[] {
+  const first = new Date(anchor.getFullYear(), anchor.getMonth(), 1)
+  const mondayOffset = (first.getDay() + 6) % 7 // Sun=0 → 6, Mon=1 → 0, …
+  const days: Date[] = []
+  for (let i = 0; i < 42; i++) {
+    days.push(new Date(first.getFullYear(), first.getMonth(), 1 - mondayOffset + i))
+  }
+  return days
+}
+
+/** Just the time part of a timed floating string, e.g. "14:00" / "2:00 pm". */
+export function timeOf(floating: string, hour12?: boolean): string {
+  return timeLabel(parseFloating(floating), hour12)
+}
+
 /** A task/event is overdue if its start is in the past (all-day → after the end of that day). */
 export function isOverdue(startsAt: string, allDay: boolean | undefined): boolean {
   const when = parseFloating(startsAt)
