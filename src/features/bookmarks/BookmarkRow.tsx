@@ -2,10 +2,9 @@ import type { HTMLAttributes } from 'react'
 import { Pencil, Link as LinkIcon, ExternalLink, ArrowUp, ArrowDown, Trash2, CircleCheckBig, Circle, GripVertical } from 'lucide-react'
 import { Menu, type MenuItem } from '@/ui/Menu'
 import { Favicon } from '@/ui/Favicon'
-import { db } from '@/db/db'
 import { useUI } from '@/state/ui'
 import { useSettings } from '@/state/settings'
-import { deleteBookmark, moveBookmark } from '@/db/repo'
+import { deleteBookmark, restoreBookmark, moveBookmark } from '@/db/repo'
 import { toast } from '@/state/toast'
 import { getDomain } from '@/lib/url'
 import type { Bookmark } from '@/types/models'
@@ -29,7 +28,7 @@ export function BookmarkRow({
 
   const del = () => {
     void deleteBookmark(bookmark.id)
-    toast({ message: 'Bookmark deleted', actionLabel: 'Undo', onAction: () => void db.bookmarks.add(bookmark) })
+    toast({ message: 'Bookmark deleted', actionLabel: 'Undo', onAction: () => void restoreBookmark(bookmark) })
   }
 
   const items: MenuItem[] = [

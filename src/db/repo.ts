@@ -2,9 +2,15 @@ import { db } from './db'
 import { uid, now } from '@/lib/id'
 import { normalizeUrl } from '@/lib/url'
 import { UNCATEGORISED, UNCATEGORISED_NAME } from './init'
+import { enqueuePut, enqueueDelete } from '@/sync/outbox'
 import type { Bookmark, Category, ID, ItemType, Note, NoteColor, NoteKind } from '@/types/models'
 
 const norm = (s: string) => s.trim().toLowerCase()
+
+// Every mutation below wraps its db write + outbox enqueue in ONE Dexie rw
+// transaction (tech-spec §4). The enqueue no-ops when sync is off, so behaviour is
+// identical for the default user; when sync is on, no write can escape the outbox.
+const tableName = (type: ItemType) => (type === 'bookmark' ? 'bookmarks' : 'notes') as 'bookmarks' | 'notes'
 
 // ── Categories ──────────────────────────────────────────────
 export async function findCategoryByName(type: ItemType, name: string): Promise<Category | undefined> {
@@ -22,7 +28,10 @@ export async function ensureCategory(type: ItemType, name: string): Promise<ID> 
   const count = await db.categories.where('type').equals(type).count()
   const id = uid()
   const ts = now()
-  await db.categories.add({ id, type, name: trimmed, order: count, createdAt: ts, updatedAt: ts })
+  await db.transaction('rw', db.categories, db.outbox, async () => {
+    await db.categories.add({ id, type, name: trimmed, order: count, createdAt: ts, updatedAt: ts })
+    await enqueuePut('categories', id, true)
+  })
   return id
 }
 
@@ -34,7 +43,10 @@ export async function renameCategory(id: ID, name: string): Promise<boolean> {
   if (!trimmed) return false
   const existing = await findCategoryByName(cat.type, trimmed)
   if (existing && existing.id !== id) return false
-  await db.categories.update(id, { name: trimmed, updatedAt: now() })
+  await db.transaction('rw', db.categories, db.outbox, async () => {
+    await db.categories.update(id, { name: trimmed, updatedAt: now() })
+    await enqueuePut('categories', id)
+  })
   return true
 }
 
@@ -43,22 +55,28 @@ export async function deleteCategory(id: ID, deleteItems: boolean): Promise<void
   const cat = await db.categories.get(id)
   if (!cat || cat.reserved) return
   const table = cat.type === 'bookmark' ? db.bookmarks : db.notes
+  const tbl = tableName(cat.type)
   const uncat = UNCATEGORISED[cat.type]
   const items = await table.where('categoryId').equals(id).toArray()
-  await db.transaction('rw', table, db.categories, async () => {
+  await db.transaction('rw', table, db.categories, db.outbox, async () => {
     if (deleteItems) {
       await table.bulkDelete(items.map((i) => i.id))
+      for (const it of items) await enqueueDelete(tbl, it.id)
     } else {
-      for (const it of items) await table.update(it.id, { categoryId: uncat, updatedAt: now() })
+      for (const it of items) {
+        await table.update(it.id, { categoryId: uncat, updatedAt: now() })
+        await enqueuePut(tbl, it.id)
+      }
     }
     await db.categories.delete(id)
+    await enqueueDelete('categories', id)
   })
 }
 
 // ── Tags ────────────────────────────────────────────────────
 export async function ensureTags(type: ItemType, names: string[]): Promise<ID[]> {
   const ids: ID[] = []
-  await db.transaction('rw', db.tags, async () => {
+  await db.transaction('rw', db.tags, db.outbox, async () => {
     const existing = await db.tags.where('type').equals(type).toArray()
     const byName = new Map(existing.map((t) => [t.name.toLowerCase(), t.id]))
     for (const raw of names) {
@@ -69,6 +87,7 @@ export async function ensureTags(type: ItemType, names: string[]): Promise<ID[]>
       if (!id) {
         id = uid()
         await db.tags.add({ id, type, name, createdAt: now() })
+        await enqueuePut('tags', id, true)
         byName.set(key, id)
       }
       ids.push(id)
@@ -86,17 +105,25 @@ export async function renameTag(id: ID, name: string): Promise<boolean> {
     (t) => t.name.toLowerCase() === trimmed.toLowerCase(),
   )
   if (existing && existing.id !== id) return false
-  await db.tags.update(id, { name: trimmed })
+  await db.transaction('rw', db.tags, db.outbox, async () => {
+    await db.tags.update(id, { name: trimmed })
+    await enqueuePut('tags', id)
+  })
   return true
 }
 
 /** Delete a tag; removes it from every item that used it. */
 export async function deleteTag(type: ItemType, id: ID): Promise<void> {
   const table = type === 'bookmark' ? db.bookmarks : db.notes
+  const tbl = tableName(type)
   const items = await table.where('tagIds').equals(id).toArray()
-  await db.transaction('rw', table, db.tags, async () => {
-    for (const it of items) await table.update(it.id, { tagIds: it.tagIds.filter((t) => t !== id), updatedAt: now() })
+  await db.transaction('rw', table, db.tags, db.outbox, async () => {
+    for (const it of items) {
+      await table.update(it.id, { tagIds: it.tagIds.filter((t) => t !== id), updatedAt: now() })
+      await enqueuePut(tbl, it.id)
+    }
     await db.tags.delete(id)
+    await enqueueDelete('tags', id)
   })
 }
 
@@ -120,7 +147,10 @@ export async function saveBookmarkForm(form: BookmarkForm, editingId?: ID | null
   const url = normalizeUrl(form.url)
   const title = form.title.trim() || url
   if (editingId) {
-    await db.bookmarks.update(editingId, { url, title, categoryId, tagIds, updatedAt: now() })
+    await db.transaction('rw', db.bookmarks, db.outbox, async () => {
+      await db.bookmarks.update(editingId, { url, title, categoryId, tagIds, updatedAt: now() })
+      await enqueuePut('bookmarks', editingId)
+    })
   } else {
     const ts = now()
     const bm: Bookmark = {
@@ -133,24 +163,44 @@ export async function saveBookmarkForm(form: BookmarkForm, editingId?: ID | null
       createdAt: ts,
       updatedAt: ts,
     }
-    await db.bookmarks.add(bm)
+    await db.transaction('rw', db.bookmarks, db.outbox, async () => {
+      await db.bookmarks.add(bm)
+      await enqueuePut('bookmarks', bm.id, true)
+    })
   }
 }
 
 export async function deleteBookmark(id: ID): Promise<void> {
-  await db.bookmarks.delete(id)
+  await db.transaction('rw', db.bookmarks, db.outbox, async () => {
+    await db.bookmarks.delete(id)
+    await enqueueDelete('bookmarks', id)
+  })
+}
+
+/** Re-add a bookmark after an undo-delete (restore of a possibly server-known row). */
+export async function restoreBookmark(bookmark: Bookmark): Promise<void> {
+  await db.transaction('rw', db.bookmarks, db.outbox, async () => {
+    await db.bookmarks.add(bookmark)
+    await enqueuePut('bookmarks', bookmark.id)
+  })
 }
 
 /** Persist a new order for a set of ids (drag-and-drop): order = index. */
 export async function reorderBookmarks(ids: ID[]): Promise<void> {
-  await db.transaction('rw', db.bookmarks, async () => {
-    for (let i = 0; i < ids.length; i++) await db.bookmarks.update(ids[i], { order: i, updatedAt: now() })
+  await db.transaction('rw', db.bookmarks, db.outbox, async () => {
+    for (let i = 0; i < ids.length; i++) {
+      await db.bookmarks.update(ids[i], { order: i, updatedAt: now() })
+      await enqueuePut('bookmarks', ids[i])
+    }
   })
 }
 
 export async function reorderNotes(ids: ID[]): Promise<void> {
-  await db.transaction('rw', db.notes, async () => {
-    for (let i = 0; i < ids.length; i++) await db.notes.update(ids[i], { order: i, updatedAt: now() })
+  await db.transaction('rw', db.notes, db.outbox, async () => {
+    for (let i = 0; i < ids.length; i++) {
+      await db.notes.update(ids[i], { order: i, updatedAt: now() })
+      await enqueuePut('notes', ids[i])
+    }
   })
 }
 
@@ -164,8 +214,12 @@ export async function moveBookmark(id: ID, dir: -1 | 1): Promise<void> {
   const i = siblings.findIndex((s) => s.id === id)
   const other = siblings[i + dir]
   if (!other) return
-  await db.bookmarks.update(bm.id, { order: other.order, updatedAt: now() })
-  await db.bookmarks.update(other.id, { order: bm.order, updatedAt: now() })
+  await db.transaction('rw', db.bookmarks, db.outbox, async () => {
+    await db.bookmarks.update(bm.id, { order: other.order, updatedAt: now() })
+    await db.bookmarks.update(other.id, { order: bm.order, updatedAt: now() })
+    await enqueuePut('bookmarks', bm.id)
+    await enqueuePut('bookmarks', other.id)
+  })
 }
 
 /** Is this URL already saved? (duplicate-URL nudge in the add form.) */
@@ -212,18 +266,21 @@ export async function saveNoteForm(form: NoteForm, editingId?: ID | null): Promi
 
   if (editingId) {
     const existing = await db.notes.get(editingId)
-    await db.notes.update(editingId, {
-      kind,
-      title,
-      body,
-      color: form.color,
-      categoryId,
-      tagIds,
-      pinned: form.pinned,
-      ...schedule,
-      done: kind === 'task' ? (existing?.done ?? false) : undefined,
-      completedAt: kind === 'task' ? existing?.completedAt : undefined,
-      updatedAt: now(),
+    await db.transaction('rw', db.notes, db.outbox, async () => {
+      await db.notes.update(editingId, {
+        kind,
+        title,
+        body,
+        color: form.color,
+        categoryId,
+        tagIds,
+        pinned: form.pinned,
+        ...schedule,
+        done: kind === 'task' ? (existing?.done ?? false) : undefined,
+        completedAt: kind === 'task' ? existing?.completedAt : undefined,
+        updatedAt: now(),
+      })
+      await enqueuePut('notes', editingId)
     })
   } else {
     const ts = now()
@@ -242,7 +299,10 @@ export async function saveNoteForm(form: NoteForm, editingId?: ID | null): Promi
       createdAt: ts,
       updatedAt: ts,
     }
-    await db.notes.add(note)
+    await db.transaction('rw', db.notes, db.outbox, async () => {
+      await db.notes.add(note)
+      await enqueuePut('notes', note.id, true)
+    })
   }
 }
 
@@ -251,40 +311,73 @@ export async function toggleNoteDone(id: ID): Promise<void> {
   const n = await db.notes.get(id)
   if (!n || n.kind !== 'task') return
   const done = !n.done
-  await db.notes.update(id, { done, completedAt: done ? now() : undefined, updatedAt: now() })
+  await db.transaction('rw', db.notes, db.outbox, async () => {
+    await db.notes.update(id, { done, completedAt: done ? now() : undefined, updatedAt: now() })
+    await enqueuePut('notes', id)
+  })
 }
 
 export async function deleteNote(id: ID): Promise<void> {
-  await db.notes.delete(id)
+  await db.transaction('rw', db.notes, db.outbox, async () => {
+    await db.notes.delete(id)
+    await enqueueDelete('notes', id)
+  })
+}
+
+/** Re-add a note after an undo-delete (restore of a possibly server-known row). */
+export async function restoreNote(note: Note): Promise<void> {
+  await db.transaction('rw', db.notes, db.outbox, async () => {
+    await db.notes.add(note)
+    await enqueuePut('notes', note.id)
+  })
 }
 
 export async function toggleNotePin(id: ID): Promise<void> {
   const n = await db.notes.get(id)
-  if (n) await db.notes.update(id, { pinned: !n.pinned, updatedAt: now() })
+  if (!n) return
+  await db.transaction('rw', db.notes, db.outbox, async () => {
+    await db.notes.update(id, { pinned: !n.pinned, updatedAt: now() })
+    await enqueuePut('notes', id)
+  })
 }
 
 export async function setNoteColor(id: ID, color: NoteColor): Promise<void> {
-  await db.notes.update(id, { color, updatedAt: now() })
+  await db.transaction('rw', db.notes, db.outbox, async () => {
+    await db.notes.update(id, { color, updatedAt: now() })
+    await enqueuePut('notes', id)
+  })
 }
 
 export async function duplicateNote(id: ID): Promise<void> {
   const n = await db.notes.get(id)
   if (!n) return
   const ts = now()
-  await db.notes.add({ ...n, id: uid(), order: await nextNoteOrder(), pinned: false, createdAt: ts, updatedAt: ts })
+  const copy: Note = { ...n, id: uid(), order: await nextNoteOrder(), pinned: false, createdAt: ts, updatedAt: ts }
+  await db.transaction('rw', db.notes, db.outbox, async () => {
+    await db.notes.add(copy)
+    await enqueuePut('notes', copy.id, true)
+  })
 }
 
 // ── Bulk actions ────────────────────────────────────────────
 export async function bulkDelete(type: ItemType, ids: ID[]): Promise<void> {
   const table = type === 'bookmark' ? db.bookmarks : db.notes
-  await table.bulkDelete(ids)
+  const tbl = tableName(type)
+  await db.transaction('rw', table, db.outbox, async () => {
+    await table.bulkDelete(ids)
+    for (const id of ids) await enqueueDelete(tbl, id)
+  })
 }
 
 export async function bulkSetCategory(type: ItemType, ids: ID[], categoryName: string): Promise<void> {
   const categoryId = await ensureCategory(type, categoryName)
   const table = type === 'bookmark' ? db.bookmarks : db.notes
-  await db.transaction('rw', table, async () => {
-    for (const id of ids) await table.update(id, { categoryId, updatedAt: now() })
+  const tbl = tableName(type)
+  await db.transaction('rw', table, db.outbox, async () => {
+    for (const id of ids) {
+      await table.update(id, { categoryId, updatedAt: now() })
+      await enqueuePut(tbl, id)
+    }
   })
 }
 
@@ -292,12 +385,14 @@ export async function bulkAddTags(type: ItemType, ids: ID[], tagNames: string[])
   const tagIds = await ensureTags(type, tagNames)
   if (!tagIds.length) return
   const table = type === 'bookmark' ? db.bookmarks : db.notes
-  await db.transaction('rw', table, async () => {
+  const tbl = tableName(type)
+  await db.transaction('rw', table, db.outbox, async () => {
     for (const id of ids) {
       const item = await table.get(id)
       if (!item) continue
       const merged = [...new Set([...item.tagIds, ...tagIds])]
       await table.update(id, { tagIds: merged, updatedAt: now() })
+      await enqueuePut(tbl, id)
     }
   })
 }
@@ -310,6 +405,10 @@ export async function moveNote(id: ID, dir: -1 | 1): Promise<void> {
   const i = group.findIndex((n) => n.id === id)
   const other = group[i + dir]
   if (!other) return
-  await db.notes.update(note.id, { order: other.order, updatedAt: now() })
-  await db.notes.update(other.id, { order: note.order, updatedAt: now() })
+  await db.transaction('rw', db.notes, db.outbox, async () => {
+    await db.notes.update(note.id, { order: other.order, updatedAt: now() })
+    await db.notes.update(other.id, { order: note.order, updatedAt: now() })
+    await enqueuePut('notes', note.id)
+    await enqueuePut('notes', other.id)
+  })
 }

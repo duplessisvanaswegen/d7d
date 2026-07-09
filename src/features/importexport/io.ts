@@ -1,7 +1,10 @@
 import { db } from '@/db/db'
-import { initDb } from '@/db/init'
+import { initDb, UNCATEGORISED } from '@/db/init'
 import { loadAppearance, applyAppearance, type Appearance } from '@/app/theme'
 import { loadPrefs, useSettings } from '@/state/settings'
+import { enqueuePut, enqueueDelete } from '@/sync/outbox'
+import { clearCursors } from '@/sync/config'
+import type { SyncTable } from '@/sync/constants'
 import { exportSchema, type ExportFile } from './schema'
 import type { Note } from '@/types/models'
 
@@ -141,32 +144,68 @@ function normalizeNotes(notes: ExportFile['notes']): Note[] {
   return notes.map((n) => ({ ...n, kind: n.kind ?? 'note' }))
 }
 
+// Reserved "Uncategorised" ids are deterministic on every device and re-created by
+// initDb — never enqueue tombstones/puts for them (would only churn the cloud).
+const RESERVED_CAT_IDS = new Set(Object.values(UNCATEGORISED))
+
 export async function applyReplace(data: ExportFile): Promise<void> {
-  await db.transaction('rw', db.bookmarks, db.notes, db.categories, db.tags, async () => {
+  // Replace makes the cloud follow the file too: puts for everything imported,
+  // deletes for local rows the file drops (reserved categories excepted).
+  const [pb, pn, pc, pt] = await Promise.all([
+    db.bookmarks.toArray(),
+    db.notes.toArray(),
+    db.categories.toArray(),
+    db.tags.toArray(),
+  ])
+  const removed = (prev: { id: string }[], incoming: { id: string }[]): string[] => {
+    const keep = new Set(incoming.map((r) => r.id))
+    return prev.filter((r) => !keep.has(r.id) && !RESERVED_CAT_IDS.has(r.id)).map((r) => r.id)
+  }
+  await db.transaction('rw', db.bookmarks, db.notes, db.categories, db.tags, db.outbox, async () => {
     await Promise.all([db.bookmarks.clear(), db.notes.clear(), db.categories.clear(), db.tags.clear()])
     await db.bookmarks.bulkAdd(data.bookmarks)
     await db.notes.bulkAdd(normalizeNotes(data.notes))
     await db.categories.bulkAdd(data.categories)
     await db.tags.bulkAdd(data.tags)
+    for (const id of removed(pb, data.bookmarks)) await enqueueDelete('bookmarks', id)
+    for (const id of removed(pn, data.notes)) await enqueueDelete('notes', id)
+    for (const id of removed(pc, data.categories)) await enqueueDelete('categories', id)
+    for (const id of removed(pt, data.tags)) await enqueueDelete('tags', id)
+    for (const r of data.bookmarks) await enqueuePut('bookmarks', r.id, true)
+    for (const r of data.notes) await enqueuePut('notes', r.id, true)
+    for (const r of data.categories) if (!RESERVED_CAT_IDS.has(r.id)) await enqueuePut('categories', r.id, true)
+    for (const r of data.tags) await enqueuePut('tags', r.id, true)
   })
   await initDb() // ensure reserved categories exist even if the file predates them
   restoreSettings(data.settings)
 }
 
-async function amend<T extends Rec>(table: { get: (id: string) => Promise<T | undefined>; put: (v: T) => Promise<unknown> }, incoming: T[]) {
+async function amend<T extends Rec>(
+  tbl: SyncTable,
+  table: { get: (id: string) => Promise<T | undefined>; put: (v: T) => Promise<unknown> },
+  incoming: T[],
+) {
   for (const r of incoming) {
     const cur = await table.get(r.id)
-    if (!cur || (r.updatedAt ?? 0) >= (cur.updatedAt ?? 0)) await table.put(r)
+    if (!cur || (r.updatedAt ?? 0) >= (cur.updatedAt ?? 0)) {
+      await table.put(r)
+      await enqueuePut(tbl, r.id, !cur)
+    }
   }
 }
 
 export async function applyAmend(data: ExportFile): Promise<void> {
-  await db.transaction('rw', db.bookmarks, db.notes, db.categories, db.tags, async () => {
-    await amend(db.bookmarks, data.bookmarks)
-    await amend(db.notes, normalizeNotes(data.notes))
-    await amend(db.categories, data.categories)
+  await db.transaction('rw', db.bookmarks, db.notes, db.categories, db.tags, db.outbox, async () => {
+    await amend('bookmarks', db.bookmarks, data.bookmarks)
+    await amend('notes', db.notes, normalizeNotes(data.notes))
+    await amend('categories', db.categories, data.categories)
     // tags: no updatedAt — add if missing, keep existing otherwise
-    for (const t of data.tags) if (!(await db.tags.get(t.id))) await db.tags.add(t)
+    for (const t of data.tags) {
+      if (!(await db.tags.get(t.id))) {
+        await db.tags.add(t)
+        await enqueuePut('tags', t.id, true)
+      }
+    }
   })
 }
 
@@ -174,5 +213,9 @@ export async function clearAllData(): Promise<void> {
   await db.transaction('rw', db.bookmarks, db.notes, db.categories, db.tags, async () => {
     await Promise.all([db.bookmarks.clear(), db.notes.clear(), db.categories.clear(), db.tags.clear()])
   })
+  // Local reset only — do NOT enqueue tombstones (that would wipe the cloud and every
+  // other device). Instead drop the pull cursors so a synced device re-pulls the cloud
+  // afresh on its next reconcile ("reset this device, re-download from cloud").
+  clearCursors()
   await initDb()
 }
