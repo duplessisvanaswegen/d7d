@@ -31,11 +31,17 @@
   flex-shrink: 0;
 }
 .head {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 6px;
 }
+/* Floated into the card's left padding gutter so it never indents the title. */
 .handle {
+  position: absolute;
+  left: -14px;
+  top: 50%;
+  transform: translateY(-50%);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -43,11 +49,9 @@
   opacity: 0;
   cursor: grab;
   touch-action: none;
-  flex-shrink: 0;
-  margin-left: -3px;
 }
 .card:hover .handle {
-  opacity: 0.55;
+  opacity: 0.5;
 }
 .handle:active {
   cursor: grabbing;
