@@ -41,11 +41,25 @@
 .body::placeholder {
   color: var(--text-tertiary);
 }
-.counter {
-  align-self: flex-end;
-  margin-top: 6px;
+.bodyMeta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: -6px;
+}
+.hint {
   font-size: 11px;
   color: var(--text-tertiary);
+}
+.hint b {
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+.counter {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  flex-shrink: 0;
 }
 .over {
   color: var(--danger);

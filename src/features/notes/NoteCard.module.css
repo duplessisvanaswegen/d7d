@@ -92,8 +92,6 @@
   line-height: 1.45;
   color: var(--note-text);
   opacity: 0.92;
-  white-space: pre-wrap;
-  word-break: break-word;
 }
 .meta {
   font-size: 11px;

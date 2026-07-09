@@ -91,6 +91,11 @@ function NoteForm({ editingId, onDone }: { editingId: ID | null; onDone: () => v
           rows={4}
           autoFocus
         />
+      </div>
+      <div className={styles.bodyMeta}>
+        <span className={styles.hint}>
+          <b>**bold**</b> · <b>*italic*</b> · <b>- list</b>
+        </span>
         <span className={over ? `${styles.counter} ${styles.over}` : styles.counter}>
           {body.length} / {NOTE_BODY_SOFT_CAP}
         </span>

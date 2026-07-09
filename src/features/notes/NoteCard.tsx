@@ -6,6 +6,7 @@ import { useUI } from '@/state/ui'
 import { deleteNote, duplicateNote, toggleNotePin, moveNote, setNoteColor } from '@/db/repo'
 import { toast } from '@/state/toast'
 import { noteBg, NOTE_COLORS } from './colors'
+import { renderNoteBody } from './markdown'
 import type { Note } from '@/types/models'
 import styles from './NoteCard.module.css'
 
@@ -89,7 +90,7 @@ export function NoteCard({ note, categoryName, tagNames, handleProps }: Props) {
           />
         )}
       </div>
-      {note.body && <p className={styles.body}>{note.body}</p>}
+      {note.body && <div className={styles.body}>{renderNoteBody(note.body)}</div>}
       {meta && <span className={styles.meta}>{meta}</span>}
     </div>
   )
