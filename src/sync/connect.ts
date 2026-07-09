@@ -1,5 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
-import { useSync, type SyncMode } from './config'
+import { useSync, clearCursors, type SyncMode } from './config'
 import { createSupabase, signIn, checkSchemaVersion } from './client'
 
 // Cached client for the reconciler; recreated on connect / config change.
@@ -66,8 +66,10 @@ export async function connect(p: ConnectParams): Promise<ConnectResult> {
   }
 
   _client = client
-  useSync.getState().setConfig({ enabled: true, url, anonKey, mode: p.mode, email: p.email.trim() })
+  // bootstrapped:false ⇒ the next reconcile union-merges local ⇄ cloud (additive).
+  useSync.getState().setConfig({ enabled: true, url, anonKey, mode: p.mode, email: p.email.trim(), bootstrapped: false })
   useSync.getState().setStatus('idle')
+  clearCursors()
   return { ok: true }
 }
 

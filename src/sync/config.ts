@@ -21,6 +21,8 @@ export interface SyncConfig {
   mode: SyncMode
   email: string // auth mode only; shown in the tab, not a secret
   realtime: boolean
+  /** False until the first reconcile has union-merged local ⇄ cloud (additive). */
+  bootstrapped: boolean
 }
 
 const CONFIG_KEY = 'd7d.sync.config'
@@ -34,6 +36,7 @@ const DEFAULT_CONFIG: SyncConfig = {
   mode: 'auth',
   email: '',
   realtime: false,
+  bootstrapped: false,
 }
 
 function loadConfig(): SyncConfig {

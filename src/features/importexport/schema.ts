@@ -1,6 +1,6 @@
 import { z } from 'zod'
 
-const bookmark = z.object({
+export const bookmark = z.object({
   id: z.string(),
   title: z.string(),
   url: z.string(),
@@ -11,7 +11,7 @@ const bookmark = z.object({
   updatedAt: z.number(),
 })
 
-const note = z.object({
+export const note = z.object({
   id: z.string(),
   title: z.string().optional(),
   body: z.string(),
@@ -31,7 +31,7 @@ const note = z.object({
   updatedAt: z.number(),
 })
 
-const category = z.object({
+export const category = z.object({
   id: z.string(),
   type: z.enum(['bookmark', 'note']),
   name: z.string(),
@@ -41,7 +41,7 @@ const category = z.object({
   updatedAt: z.number(),
 })
 
-const tag = z.object({
+export const tag = z.object({
   id: z.string(),
   type: z.enum(['bookmark', 'note']),
   name: z.string(),

@@ -32,6 +32,7 @@ import {
 import type { ExportFile } from '@/features/importexport/schema'
 import { useSync, type SyncMode, type SyncStatus } from '@/sync/config'
 import { connect, disconnect, type ConnectResult } from '@/sync/connect'
+import { syncNow } from '@/sync/reconcile'
 import { setupSql } from '@/sync/schemaSql'
 import styles from './OptionsModal.module.css'
 
@@ -583,6 +584,11 @@ function SyncConnected({ status, lastSyncAt, lastError }: { status: SyncStatus; 
         <span className={styles.rowSub}>{config.mode === 'auth' ? 'Auth' : 'Simple'}</span>
       </Row>
       {config.mode === 'auth' && <Row title="Account" sub={config.email}>{null}</Row>}
+      <Row title="Sync now" sub="Push local changes and pull remote ones immediately.">
+        <button className={styles.primary} onClick={() => void syncNow()} disabled={status === 'syncing'}>
+          <RefreshCw size={14} /> {status === 'syncing' ? 'Syncing…' : 'Sync now'}
+        </button>
+      </Row>
       <div className={styles.note}>
         <Info size={15} />
         <span>Sync runs in the background. Bookmarks, notes, categories and tags stay in step across your devices — settings and weather remain per-device. Export/import is still your offline backup.</span>
