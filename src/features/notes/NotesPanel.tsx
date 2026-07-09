@@ -124,7 +124,12 @@ export function NotesPanel() {
 }
 
 function SortableNoteCard({ item }: { item: NoteWithNames }) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: item.note.id })
+  // Async (Dexie) reorder → disable the post-drop layout FLIP so the item
+  // doesn't animate the "wrong way" while the new order settles.
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: item.note.id,
+    animateLayoutChanges: () => false,
+  })
   const style = {
     // Translate only — never scale (cards vary in size, so CSS.Transform would distort them).
     transform: CSS.Translate.toString(transform),

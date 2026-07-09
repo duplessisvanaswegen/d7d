@@ -144,7 +144,11 @@ function CategoryGroup({
 }
 
 function SortableBookmark({ bookmark }: { bookmark: Bookmark }) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: bookmark.id })
+  // See NotesPanel: disable the post-drop layout FLIP (async Dexie reorder).
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: bookmark.id,
+    animateLayoutChanges: () => false,
+  })
   const style = {
     // Translate only — avoid any scale distortion during drag.
     transform: CSS.Translate.toString(transform),
