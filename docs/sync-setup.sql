@@ -100,3 +100,10 @@ create policy d7d_meta_read on public.sync_meta for select using (true);
 -- 4. Schema-version marker (checked by d7d on every connect).
 insert into public.sync_meta(key, value) values ('schema_version', '1')
   on conflict (key) do update set value = excluded.value;
+
+-- 5. (Optional) Realtime — only needed if you turn on "Live updates" in the Sync tab.
+do $$
+begin
+  alter publication supabase_realtime add table public.bookmarks, public.notes, public.categories, public.tags;
+exception when duplicate_object then null;
+end $$;

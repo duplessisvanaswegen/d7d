@@ -33,6 +33,7 @@ import type { ExportFile } from '@/features/importexport/schema'
 import { useSync, type SyncMode, type SyncStatus } from '@/sync/config'
 import { connect, disconnect, type ConnectResult } from '@/sync/connect'
 import { syncNow } from '@/sync/reconcile'
+import { syncRealtime } from '@/sync/realtime'
 import { setupSql } from '@/sync/schemaSql'
 import styles from './OptionsModal.module.css'
 
@@ -559,7 +560,13 @@ function SyncTab() {
 function SyncConnected({ status, lastSyncAt, lastError }: { status: SyncStatus; lastSyncAt: number | null; lastError: string | null }) {
   const config = useSync((s) => s.config)
   const lastSummary = useSync((s) => s.lastSummary)
+  const setConfig = useSync((s) => s.setConfig)
   const [busy, setBusy] = useState(false)
+
+  const toggleRealtime = (on: boolean) => {
+    setConfig({ realtime: on })
+    syncRealtime()
+  }
 
   async function onDisconnect() {
     if (!window.confirm('Disconnect sync from this device? Your local data stays; only the connection is removed.')) return
@@ -594,6 +601,9 @@ function SyncConnected({ status, lastSyncAt, lastError }: { status: SyncStatus; 
         <button className={styles.primary} onClick={() => void syncNow()} disabled={status === 'syncing'}>
           <RefreshCw size={14} /> {status === 'syncing' ? 'Syncing…' : 'Sync now'}
         </button>
+      </Row>
+      <Row title="Live updates (Realtime)" sub="Push changes between devices instantly. Requires the Realtime step in the setup SQL.">
+        <Toggle on={config.realtime} onChange={toggleRealtime} />
       </Row>
       <div className={styles.note}>
         <Info size={15} />

@@ -1,6 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { useSync, clearCursors, type SyncMode } from './config'
 import { createSupabase, signIn, checkSchemaVersion } from './client'
+import { syncRealtime } from './realtime'
 
 // Cached client for the reconciler; recreated on connect / config change.
 let _client: SupabaseClient | null = null
@@ -70,6 +71,7 @@ export async function connect(p: ConnectParams): Promise<ConnectResult> {
   useSync.getState().setConfig({ enabled: true, url, anonKey, mode: p.mode, email: p.email.trim(), bootstrapped: false })
   useSync.getState().setStatus('idle')
   clearCursors()
+  syncRealtime() // honour a previously-chosen realtime toggle for this connection
   return { ok: true }
 }
 
@@ -80,7 +82,8 @@ export async function disconnect(): Promise<void> {
   } catch {
     // best-effort; we clear locally regardless
   }
-  _client = null
   useSync.getState().setConfig({ enabled: false, anonKey: '' })
+  syncRealtime() // tears down the live subscription (now disabled)
+  _client = null
   useSync.getState().setStatus('off')
 }

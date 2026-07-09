@@ -1,5 +1,6 @@
 import { useSync } from './config'
 import { reconcile } from './reconcile'
+import { syncRealtime } from './realtime'
 import { onMutation } from './bus'
 
 // Wires the ambient reconcile triggers (tech-spec §6): on focus, on a modest
@@ -52,4 +53,5 @@ export function startSyncTriggers(): void {
   setInterval(() => {
     if (visible()) void run()
   }, INTERVAL_MS)
+  syncRealtime() // restore the live subscription if it was left on
 }

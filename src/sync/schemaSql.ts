@@ -80,5 +80,12 @@ create policy d7d_meta_write on public.sync_meta for all using (true) with check
 -- 4. Schema-version marker (checked by d7d on every connect).
 insert into public.sync_meta(key, value) values ('schema_version', '${CLOUD_SCHEMA_VERSION}')
   on conflict (key) do update set value = excluded.value;
+
+-- 5. (Optional) Realtime — only needed if you turn on "Live updates" in the Sync tab.
+do $$
+begin
+  alter publication supabase_realtime add table ${SYNC_TABLES.map((t) => `public.${t}`).join(', ')};
+exception when duplicate_object then null;
+end $$;
 `
 }
