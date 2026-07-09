@@ -16,6 +16,21 @@ export class D7dDB extends Dexie {
       categories: 'id, [type+name], type, order',
       tags: 'id, [type+name], type',
     })
+
+    // v2: notes gain kind/schedule (Notes → Tasks & Events). Index kind + startsAt for
+    // filtering/sorting and the future calendar. Existing notes become kind: 'note'.
+    this.version(2)
+      .stores({
+        notes: 'id, categoryId, order, updatedAt, kind, startsAt, *tagIds',
+      })
+      .upgrade((tx) =>
+        tx
+          .table('notes')
+          .toCollection()
+          .modify((n) => {
+            if (!n.kind) n.kind = 'note'
+          }),
+      )
   }
 }
 

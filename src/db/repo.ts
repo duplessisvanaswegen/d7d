@@ -2,7 +2,7 @@ import { db } from './db'
 import { uid, now } from '@/lib/id'
 import { normalizeUrl } from '@/lib/url'
 import { UNCATEGORISED, UNCATEGORISED_NAME } from './init'
-import type { Bookmark, Category, ID, ItemType, Note, NoteColor } from '@/types/models'
+import type { Bookmark, Category, ID, ItemType, Note, NoteColor, NoteKind } from '@/types/models'
 
 const norm = (s: string) => s.trim().toLowerCase()
 
@@ -176,12 +176,16 @@ export async function findBookmarkByUrl(url: string): Promise<Bookmark | undefin
 
 // ── Notes ───────────────────────────────────────────────────
 export interface NoteForm {
+  kind?: NoteKind
   title: string
   body: string
   color: NoteColor
   categoryName: string
   tagNames: string[]
   pinned: boolean
+  startsAt?: string
+  endsAt?: string
+  allDay?: boolean
 }
 
 async function nextNoteOrder(): Promise<number> {
@@ -189,37 +193,65 @@ async function nextNoteOrder(): Promise<number> {
   return (last?.order ?? 0) + 1
 }
 
+/** Kind-save hygiene: keep only the schedule fields the chosen kind uses. */
+function scheduleFor(kind: NoteKind, form: NoteForm): Pick<Note, 'startsAt' | 'endsAt' | 'allDay'> {
+  const start = form.startsAt?.trim() || undefined
+  const end = form.endsAt?.trim() || undefined
+  if (kind === 'task') return { startsAt: start, endsAt: undefined, allDay: start ? !!form.allDay : undefined }
+  if (kind === 'event') return { startsAt: start, endsAt: start && end ? end : undefined, allDay: !!form.allDay }
+  return { startsAt: undefined, endsAt: undefined, allDay: undefined } // note: no schedule
+}
+
 export async function saveNoteForm(form: NoteForm, editingId?: ID | null): Promise<void> {
+  const kind: NoteKind = form.kind ?? 'note'
   const categoryId = await ensureCategory('note', form.categoryName)
   const tagIds = await ensureTags('note', form.tagNames)
   const title = form.title.trim() || undefined
   const body = form.body.trim()
+  const schedule = scheduleFor(kind, form)
+
   if (editingId) {
+    const existing = await db.notes.get(editingId)
     await db.notes.update(editingId, {
+      kind,
       title,
       body,
       color: form.color,
       categoryId,
       tagIds,
       pinned: form.pinned,
+      ...schedule,
+      done: kind === 'task' ? (existing?.done ?? false) : undefined,
+      completedAt: kind === 'task' ? existing?.completedAt : undefined,
       updatedAt: now(),
     })
   } else {
     const ts = now()
     const note: Note = {
       id: uid(),
+      kind,
       title,
       body,
       color: form.color,
       categoryId,
       tagIds,
       pinned: form.pinned,
+      ...schedule,
+      done: kind === 'task' ? false : undefined,
       order: await nextNoteOrder(),
       createdAt: ts,
       updatedAt: ts,
     }
     await db.notes.add(note)
   }
+}
+
+/** Toggle a task's completion (no-op for notes/events). */
+export async function toggleNoteDone(id: ID): Promise<void> {
+  const n = await db.notes.get(id)
+  if (!n || n.kind !== 'task') return
+  const done = !n.done
+  await db.notes.update(id, { done, completedAt: done ? now() : undefined, updatedAt: now() })
 }
 
 export async function deleteNote(id: ID): Promise<void> {

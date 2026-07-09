@@ -3,6 +3,7 @@ import { initDb } from '@/db/init'
 import { loadAppearance, applyAppearance, type Appearance } from '@/app/theme'
 import { loadPrefs, useSettings } from '@/state/settings'
 import { exportSchema, type ExportFile } from './schema'
+import type { Note } from '@/types/models'
 
 export const SCHEMA_VERSION = 1
 const LAST_EXPORT_KEY = 'd7d.lastExport'
@@ -135,11 +136,16 @@ function restoreSettings(s: ExportFile['settings']) {
   useSettings.getState().hydrate(s.prefs)
 }
 
+// Pre-feature exports have no `kind` — default imported notes to 'note'.
+function normalizeNotes(notes: ExportFile['notes']): Note[] {
+  return notes.map((n) => ({ ...n, kind: n.kind ?? 'note' }))
+}
+
 export async function applyReplace(data: ExportFile): Promise<void> {
   await db.transaction('rw', db.bookmarks, db.notes, db.categories, db.tags, async () => {
     await Promise.all([db.bookmarks.clear(), db.notes.clear(), db.categories.clear(), db.tags.clear()])
     await db.bookmarks.bulkAdd(data.bookmarks)
-    await db.notes.bulkAdd(data.notes)
+    await db.notes.bulkAdd(normalizeNotes(data.notes))
     await db.categories.bulkAdd(data.categories)
     await db.tags.bulkAdd(data.tags)
   })
@@ -157,7 +163,7 @@ async function amend<T extends Rec>(table: { get: (id: string) => Promise<T | un
 export async function applyAmend(data: ExportFile): Promise<void> {
   await db.transaction('rw', db.bookmarks, db.notes, db.categories, db.tags, async () => {
     await amend(db.bookmarks, data.bookmarks)
-    await amend(db.notes, data.notes)
+    await amend(db.notes, normalizeNotes(data.notes))
     await amend(db.categories, data.categories)
     // tags: no updatedAt — add if missing, keep existing otherwise
     for (const t of data.tags) if (!(await db.tags.get(t.id))) await db.tags.add(t)

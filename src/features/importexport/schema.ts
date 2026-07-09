@@ -20,6 +20,13 @@ const note = z.object({
   color: z.enum(['yellow', 'blue', 'green', 'pink', 'purple', 'neutral']),
   pinned: z.boolean(),
   order: z.number(),
+  // Notes → Tasks & Events (all optional so pre-feature exports still validate)
+  kind: z.enum(['note', 'task', 'event']).optional(),
+  startsAt: z.string().optional(),
+  endsAt: z.string().optional(),
+  allDay: z.boolean().optional(),
+  done: z.boolean().optional(),
+  completedAt: z.number().optional(),
   createdAt: z.number(),
   updatedAt: z.number(),
 })
