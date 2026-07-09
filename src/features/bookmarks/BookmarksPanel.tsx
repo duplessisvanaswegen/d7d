@@ -1,5 +1,5 @@
 import { useLiveQuery } from 'dexie-react-hooks'
-import { Bookmark as BookmarkIcon, ChevronDown, ChevronRight, SearchX, CircleCheck } from 'lucide-react'
+import { Bookmark as BookmarkIcon, ChevronDown, ChevronRight, SearchX, CircleCheck, Plus } from 'lucide-react'
 import { DndContext, closestCenter, type DragEndEvent } from '@dnd-kit/core'
 import { SortableContext, verticalListSortingStrategy, arrayMove, useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
@@ -64,10 +64,16 @@ export function BookmarksPanel() {
           <span className={styles.count}>{searching ? filtered.length : bookmarks.length}</span>
         </div>
         {bookmarks.length > 0 && (
-          <button className={styles.selectBtn} onClick={() => (selecting ? clearSelect() : enterSelect('bookmark'))}>
-            <CircleCheck size={15} />
-            <span>{selecting ? 'Done' : 'Select'}</span>
-          </button>
+          <div className={styles.actions}>
+            <button className={styles.selectBtn} onClick={() => (selecting ? clearSelect() : enterSelect('bookmark'))}>
+              <CircleCheck size={15} />
+              <span>{selecting ? 'Done' : 'Select'}</span>
+            </button>
+            <button className={styles.selectBtn} onClick={openAdd}>
+              <Plus size={15} />
+              <span>Bookmark</span>
+            </button>
+          </div>
         )}
       </header>
 

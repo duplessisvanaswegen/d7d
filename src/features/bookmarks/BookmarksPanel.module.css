@@ -34,6 +34,11 @@
   background: var(--subtle);
   border-radius: 20px;
 }
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
 .selectBtn {
   display: inline-flex;
   align-items: center;

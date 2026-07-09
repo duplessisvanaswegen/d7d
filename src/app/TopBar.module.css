@@ -79,21 +79,6 @@
   color: var(--text-primary);
 }
 
-.add {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  padding: 10px 16px;
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--on-accent);
-  background: var(--accent);
-  border-radius: var(--radius-ctl);
-}
-.add:hover {
-  background: var(--accent-hover);
-}
-
 .iconBtn {
   display: flex;
   align-items: center;
@@ -117,11 +102,5 @@
   .clocks,
   .kbd {
     display: none;
-  }
-  .add span {
-    display: none;
-  }
-  .add {
-    padding: 10px;
   }
 }
