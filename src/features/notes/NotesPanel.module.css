@@ -13,24 +13,44 @@
   padding: 16px 20px;
   flex-shrink: 0;
 }
-.titleWrap {
+.tabs {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 2px;
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
 }
-.title {
-  margin: 0;
-  font-size: 18px;
-  font-weight: 600;
-  color: var(--text-primary);
+.tabs::-webkit-scrollbar {
+  display: none;
 }
-.count {
-  padding: 2px 8px;
-  font-size: 12px;
+.tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 11px;
+  font-size: 14px;
   font-weight: 500;
   color: var(--text-secondary);
+  border-radius: 8px;
+  flex-shrink: 0;
+}
+.tab:hover {
+  color: var(--text-primary);
   background: var(--subtle);
-  border-radius: 20px;
+}
+.tabActive {
+  color: var(--text-primary);
+  font-weight: 600;
+  background: var(--subtle);
+}
+.tabCount {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-tertiary);
+}
+.tabActive .tabCount {
+  color: var(--text-secondary);
 }
 .actions {
   display: flex;
