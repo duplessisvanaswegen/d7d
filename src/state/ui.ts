@@ -12,6 +12,9 @@ interface UIState {
   openEditNote: (id: ID) => void
   closeNoteModal: () => void
 
+  view: 'home' | 'calendar'
+  setView: (v: 'home' | 'calendar') => void
+
   query: string
   setQuery: (q: string) => void
 
@@ -41,6 +44,9 @@ export const useUI = create<UIState>((set) => ({
   openAddNote: () => set({ noteModal: { open: true, editingId: null } }),
   openEditNote: (id) => set({ noteModal: { open: true, editingId: id } }),
   closeNoteModal: () => set({ noteModal: { open: false, editingId: null } }),
+
+  view: 'home',
+  setView: (v) => set({ view: v }),
 
   query: '',
   setQuery: (q) => set({ query: q }),
