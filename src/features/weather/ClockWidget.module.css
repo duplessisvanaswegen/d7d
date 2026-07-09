@@ -11,6 +11,7 @@
   background: var(--subtle);
   border: 1px solid var(--border);
   border-radius: 8px;
+  flex-shrink: 0;
 }
 .col {
   display: flex;
