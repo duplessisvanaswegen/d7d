@@ -30,6 +30,39 @@
   color: var(--note-text);
   flex-shrink: 0;
 }
+.checkTask {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--note-text);
+  opacity: 0.7;
+  flex-shrink: 0;
+  cursor: pointer;
+}
+.checkTask:hover {
+  opacity: 1;
+}
+.titleDone {
+  text-decoration: line-through;
+  opacity: 0.55;
+}
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  align-self: flex-start;
+  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: 999px;
+  color: var(--note-text);
+  background: rgba(0, 0, 0, 0.06);
+}
+.badgeOverdue {
+  color: var(--on-accent);
+  background: var(--danger);
+  opacity: 0.9;
+}
 .head {
   position: relative;
   display: flex;

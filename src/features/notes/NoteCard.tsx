@@ -1,12 +1,13 @@
 import type { HTMLAttributes } from 'react'
-import { Pencil, Copy, CopyPlus, Pin, ArrowUp, ArrowDown, Trash2, CircleCheckBig, Circle, GripVertical } from 'lucide-react'
+import { Pencil, Copy, CopyPlus, Pin, ArrowUp, ArrowDown, Trash2, CircleCheckBig, Circle, GripVertical, Square, SquareCheckBig, Clock, CalendarClock } from 'lucide-react'
 import { Menu, type MenuItem } from '@/ui/Menu'
 import { db } from '@/db/db'
 import { useUI } from '@/state/ui'
-import { deleteNote, duplicateNote, toggleNotePin, moveNote, setNoteColor } from '@/db/repo'
+import { deleteNote, duplicateNote, toggleNotePin, moveNote, setNoteColor, toggleNoteDone } from '@/db/repo'
 import { toast } from '@/state/toast'
 import { noteBg, NOTE_COLORS } from './colors'
 import { renderNoteBody } from './markdown'
+import { formatDue, formatEventTime, isOverdue } from '@/lib/datetime'
 import type { Note } from '@/types/models'
 import styles from './NoteCard.module.css'
 
@@ -24,6 +25,10 @@ export function NoteCard({ note, categoryName, tagNames, handleProps }: Props) {
   const toggleSelected = useUI((s) => s.toggleSelected)
   const meta = [categoryName, ...tagNames.map((t) => `#${t}`)].filter(Boolean).join('  ·  ')
   const copy = () => void navigator.clipboard?.writeText([note.title, note.body].filter(Boolean).join('\n'))
+
+  const isTask = note.kind === 'task'
+  const isEvent = note.kind === 'event'
+  const overdue = isTask && !note.done && !!note.startsAt && isOverdue(note.startsAt, note.allDay)
 
   const del = () => {
     void deleteNote(note.id)
@@ -54,7 +59,23 @@ export function NoteCard({ note, categoryName, tagNames, handleProps }: Props) {
         )}
         {selecting &&
           (selected ? <CircleCheckBig size={16} className={styles.check} /> : <Circle size={16} className={styles.check} />)}
-        {note.title ? <span className={styles.title}>{note.title}</span> : <span className={styles.spacer} />}
+        {isTask && !selecting && (
+          <button
+            className={styles.checkTask}
+            onClick={(e) => {
+              e.stopPropagation()
+              void toggleNoteDone(note.id)
+            }}
+            aria-label={note.done ? 'Mark not done' : 'Mark done'}
+          >
+            {note.done ? <SquareCheckBig size={16} /> : <Square size={16} />}
+          </button>
+        )}
+        {note.title ? (
+          <span className={note.done ? `${styles.title} ${styles.titleDone}` : styles.title}>{note.title}</span>
+        ) : (
+          <span className={styles.spacer} />
+        )}
         {note.pinned && <Pin size={13} className={styles.pin} />}
         {!selecting && (
           <button
@@ -90,6 +111,18 @@ export function NoteCard({ note, categoryName, tagNames, handleProps }: Props) {
           />
         )}
       </div>
+      {isTask && note.startsAt && (
+        <span className={overdue ? `${styles.badge} ${styles.badgeOverdue}` : styles.badge}>
+          <Clock size={12} />
+          {formatDue(note.startsAt, note.allDay)}
+        </span>
+      )}
+      {isEvent && note.startsAt && (
+        <span className={styles.badge}>
+          <CalendarClock size={12} />
+          {formatEventTime(note.startsAt, note.endsAt, note.allDay)}
+        </span>
+      )}
       {note.body && <div className={styles.body}>{renderNoteBody(note.body)}</div>}
       {meta && <span className={styles.meta}>{meta}</span>}
     </div>
