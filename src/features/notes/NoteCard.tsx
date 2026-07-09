@@ -1,10 +1,9 @@
 import type { HTMLAttributes } from 'react'
 import { Pencil, Copy, CopyPlus, Pin, ArrowUp, ArrowDown, Trash2, CircleCheckBig, Circle, GripVertical, Square, SquareCheckBig, Clock, CalendarClock } from 'lucide-react'
 import { Menu, type MenuItem } from '@/ui/Menu'
-import { db } from '@/db/db'
 import { useUI } from '@/state/ui'
 import { useSettings } from '@/state/settings'
-import { deleteNote, duplicateNote, toggleNotePin, moveNote, setNoteColor, toggleNoteDone } from '@/db/repo'
+import { deleteNote, restoreNote, duplicateNote, toggleNotePin, moveNote, setNoteColor, toggleNoteDone } from '@/db/repo'
 import { toast } from '@/state/toast'
 import { noteBg, NOTE_COLORS } from './colors'
 import { renderNoteBody } from './markdown'
@@ -34,7 +33,7 @@ export function NoteCard({ note, categoryName, tagNames, handleProps }: Props) {
 
   const del = () => {
     void deleteNote(note.id)
-    toast({ message: 'Note deleted', actionLabel: 'Undo', onAction: () => void db.notes.add(note) })
+    toast({ message: 'Note deleted', actionLabel: 'Undo', onAction: () => void restoreNote(note) })
   }
 
   const items: MenuItem[] = [

@@ -1,11 +1,13 @@
 import Dexie, { type Table } from 'dexie'
 import type { Bookmark, Note, Category, Tag } from '@/types/models'
+import type { OutboxRow } from '@/sync/outbox'
 
 export class D7dDB extends Dexie {
   bookmarks!: Table<Bookmark, string>
   notes!: Table<Note, string>
   categories!: Table<Category, string>
   tags!: Table<Tag, string>
+  outbox!: Table<OutboxRow, string>
 
   constructor() {
     super('d7d')
@@ -31,6 +33,13 @@ export class D7dDB extends Dexie {
             if (!n.kind) n.kind = 'note'
           }),
       )
+
+    // v3: BYOC sync. `outbox` records local mutations awaiting push, keyed by
+    // `${table}:${recordId}` so ops coalesce to one row per record. Additive —
+    // no data touched; the app is unchanged for the default (sync-off) user.
+    this.version(3).stores({
+      outbox: 'key, table',
+    })
   }
 }
 
