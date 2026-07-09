@@ -38,16 +38,22 @@ function dayLabel(d: Date): string {
   return d.toLocaleDateString([], opts)
 }
 
-const timeLabel = (d: Date) => d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+const timeLabel = (d: Date, hour12?: boolean) =>
+  d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12 })
 
 /** "Due Fri", "Due Today 14:00". */
-export function formatDue(startsAt: string, allDay: boolean | undefined): string {
+export function formatDue(startsAt: string, allDay: boolean | undefined, hour12?: boolean): string {
   const d = parseFloating(startsAt)
-  return allDay ? dayLabel(d) : `${dayLabel(d)} ${timeLabel(d)}`
+  return allDay ? dayLabel(d) : `${dayLabel(d)} ${timeLabel(d, hour12)}`
 }
 
 /** "Mon · all day", "Fri 14:00–15:00", "12 Jul 22:00 – 13 Jul 02:00". */
-export function formatEventTime(startsAt: string, endsAt: string | undefined, allDay: boolean | undefined): string {
+export function formatEventTime(
+  startsAt: string,
+  endsAt: string | undefined,
+  allDay: boolean | undefined,
+  hour12?: boolean,
+): string {
   const start = parseFloating(startsAt)
   if (allDay) {
     if (endsAt) {
@@ -56,8 +62,8 @@ export function formatEventTime(startsAt: string, endsAt: string | undefined, al
     }
     return `${dayLabel(start)} · all day`
   }
-  if (!endsAt) return `${dayLabel(start)} ${timeLabel(start)}`
+  if (!endsAt) return `${dayLabel(start)} ${timeLabel(start, hour12)}`
   const end = parseFloating(endsAt)
-  if (sameDay(start, end)) return `${dayLabel(start)} ${timeLabel(start)}–${timeLabel(end)}`
-  return `${dayLabel(start)} ${timeLabel(start)} – ${dayLabel(end)} ${timeLabel(end)}`
+  if (sameDay(start, end)) return `${dayLabel(start)} ${timeLabel(start, hour12)}–${timeLabel(end, hour12)}`
+  return `${dayLabel(start)} ${timeLabel(start, hour12)} – ${dayLabel(end)} ${timeLabel(end, hour12)}`
 }

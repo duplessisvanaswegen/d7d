@@ -3,6 +3,7 @@ import { Pencil, Copy, CopyPlus, Pin, ArrowUp, ArrowDown, Trash2, CircleCheckBig
 import { Menu, type MenuItem } from '@/ui/Menu'
 import { db } from '@/db/db'
 import { useUI } from '@/state/ui'
+import { useSettings } from '@/state/settings'
 import { deleteNote, duplicateNote, toggleNotePin, moveNote, setNoteColor, toggleNoteDone } from '@/db/repo'
 import { toast } from '@/state/toast'
 import { noteBg, NOTE_COLORS } from './colors'
@@ -26,6 +27,7 @@ export function NoteCard({ note, categoryName, tagNames, handleProps }: Props) {
   const meta = [categoryName, ...tagNames.map((t) => `#${t}`)].filter(Boolean).join('  ·  ')
   const copy = () => void navigator.clipboard?.writeText([note.title, note.body].filter(Boolean).join('\n'))
 
+  const hour12 = useSettings((s) => s.clockFormat) === '12'
   const isTask = note.kind === 'task'
   const isEvent = note.kind === 'event'
   const overdue = isTask && !note.done && !!note.startsAt && isOverdue(note.startsAt, note.allDay)
@@ -114,13 +116,13 @@ export function NoteCard({ note, categoryName, tagNames, handleProps }: Props) {
       {isTask && note.startsAt && (
         <span className={overdue ? `${styles.badge} ${styles.badgeOverdue}` : styles.badge}>
           <Clock size={12} />
-          {formatDue(note.startsAt, note.allDay)}
+          {formatDue(note.startsAt, note.allDay, hour12)}
         </span>
       )}
       {isEvent && note.startsAt && (
         <span className={styles.badge}>
           <CalendarClock size={12} />
-          {formatEventTime(note.startsAt, note.endsAt, note.allDay)}
+          {formatEventTime(note.startsAt, note.endsAt, note.allDay, hour12)}
         </span>
       )}
       {note.body && <div className={styles.body}>{renderNoteBody(note.body)}</div>}
