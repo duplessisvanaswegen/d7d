@@ -74,6 +74,7 @@
 
 /* ── Month grid ─────────────────────────────────────────── */
 .month {
+  position: relative;
   flex: 1;
   min-height: 0;
   overflow-y: auto;
@@ -86,7 +87,8 @@
 }
 .week {
   position: relative;
-  flex: 1;
+  /* grow to fill spare height, but never shrink below content (would clip bars) */
+  flex: 1 0 auto;
   min-height: 96px;
   border-top: 1px solid var(--border);
 }
@@ -205,10 +207,116 @@
   margin-right: 0;
 }
 .more {
+  pointer-events: auto;
   padding: 0 6px;
   font-size: 10px;
   font-weight: 600;
   color: var(--text-tertiary);
   line-height: 18px;
   align-self: center;
+  justify-self: start;
+  cursor: pointer;
+  border-radius: 4px;
+}
+.more:hover {
+  color: var(--text-primary);
+  background: var(--subtle);
+}
+
+/* ── Empty hint ─────────────────────────────────────────── */
+.emptyHint {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  margin: 0;
+  padding: 0 20px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--text-tertiary);
+  pointer-events: none;
+}
+
+/* ── Day-peek popover ───────────────────────────────────── */
+.peekBackdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+}
+.peek {
+  position: fixed;
+  z-index: 41;
+  width: 244px;
+  max-height: 320px;
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: var(--shadow-modal, 0 12px 32px rgba(0, 0, 0, 0.35));
+  overflow: hidden;
+}
+.peekHead {
+  padding: 12px 14px 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.peekList {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 0 6px;
+}
+.peekRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 7px 8px;
+  border-radius: 7px;
+  text-align: left;
+  color: var(--text-primary);
+}
+.peekRow:hover {
+  background: var(--subtle);
+}
+.peekDot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.peekTime {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  flex-shrink: 0;
+}
+.peekTitle {
+  min-width: 0;
+  font-size: 13px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.peekDone {
+  text-decoration: line-through;
+  color: var(--text-tertiary);
+}
+.peekAdd {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 6px;
+  padding: 8px 10px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+.peekAdd:hover {
+  color: var(--text-primary);
+  background: var(--subtle);
 }

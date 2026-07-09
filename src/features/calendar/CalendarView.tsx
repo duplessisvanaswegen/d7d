@@ -1,13 +1,13 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Plus } from 'lucide-react'
 import { db } from '@/db/db'
 import { useUI } from '@/state/ui'
 import { useSettings } from '@/state/settings'
 import { noteBg } from '@/features/notes/colors'
 import { parseQuery, isBlank } from '@/features/search/parser'
 import { itemMatches, type NameSets } from '@/features/search/match'
-import { ymd, addMonths, monthTitle, monthMatrix, timeOf } from '@/lib/datetime'
+import { ymd, addMonths, monthTitle, monthMatrix, timeOf, parseFloating } from '@/lib/datetime'
 import { layoutWeek, type CalItem, type Segment } from './layout'
 import type { Note, Category, Tag } from '@/types/models'
 import styles from './CalendarView.module.css'
@@ -16,6 +16,10 @@ const MAX_LANES = 3
 const DOW = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 
 const dateKey = (s: string) => s.slice(0, 10)
+const peekHeading = (key: string) =>
+  parseFloating(key).toLocaleDateString([], { weekday: 'long', day: 'numeric', month: 'long' })
+const sortForDay = (a: CalItem, b: CalItem) =>
+  Number(a.timed) - Number(b.timed) || a.startsAt.localeCompare(b.startsAt) || a.title.localeCompare(b.title)
 
 export function CalendarView() {
   const query = useUI((s) => s.query)
@@ -26,6 +30,14 @@ export function CalendarView() {
     const now = new Date()
     return new Date(now.getFullYear(), now.getMonth(), 1)
   })
+  const [peek, setPeek] = useState<{ key: string; x: number; y: number } | null>(null)
+
+  useEffect(() => {
+    if (!peek) return
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setPeek(null)
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [peek])
 
   const notes = useLiveQuery(() => db.notes.toArray(), [], [] as Note[])
   const categories = useLiveQuery(() => db.categories.where('type').equals('note').toArray(), [], [] as Category[])
@@ -138,16 +150,75 @@ export function CalendarView() {
                 ))}
                 {hiddenPerCol.map((n, di) =>
                   n > 0 ? (
-                    <span key={`more-${di}`} className={styles.more} style={{ gridColumn: di + 1, gridRow: MAX_LANES + 2 }}>
+                    <button
+                      key={`more-${di}`}
+                      type="button"
+                      className={styles.more}
+                      style={{ gridColumn: di + 1, gridRow: MAX_LANES + 2 }}
+                      onClick={(e) => {
+                        const r = e.currentTarget.getBoundingClientRect()
+                        setPeek({ key: weekKeys[di], x: r.left, y: r.bottom })
+                      }}
+                    >
                       +{n} more
-                    </span>
+                    </button>
                   ) : null,
                 )}
               </div>
             </div>
           )
         })}
+        {items.length === 0 && (
+          <p className={styles.emptyHint}>
+            {searching ? 'No tasks or events match your search.' : 'No tasks or events scheduled. Click a day to add one.'}
+          </p>
+        )}
       </div>
+
+      {peek && (
+        <>
+          <div className={styles.peekBackdrop} onClick={() => setPeek(null)} />
+          <div
+            className={styles.peek}
+            style={{
+              top: Math.max(8, Math.min(peek.y + 6, window.innerHeight - 340)),
+              left: Math.max(8, Math.min(peek.x, window.innerWidth - 260)),
+            }}
+          >
+            <div className={styles.peekHead}>{peekHeading(peek.key)}</div>
+            <div className={styles.peekList}>
+              {items
+                .filter((it) => it.startKey <= peek.key && it.endKey >= peek.key)
+                .sort(sortForDay)
+                .map((it) => (
+                  <button
+                    key={it.id}
+                    type="button"
+                    className={styles.peekRow}
+                    onClick={() => {
+                      openEdit(it.id)
+                      setPeek(null)
+                    }}
+                  >
+                    <span className={styles.peekDot} style={{ background: noteBg(it.color) }} />
+                    {it.timed && !it.allDay && <b className={styles.peekTime}>{timeOf(it.startsAt, hour12)}</b>}
+                    <span className={it.done ? `${styles.peekTitle} ${styles.peekDone}` : styles.peekTitle}>{it.title}</span>
+                  </button>
+                ))}
+            </div>
+            <button
+              type="button"
+              className={styles.peekAdd}
+              onClick={() => {
+                openAdd({ kind: 'task', startDate: peek.key })
+                setPeek(null)
+              }}
+            >
+              <Plus size={14} /> New here
+            </button>
+          </div>
+        </>
+      )}
     </section>
   )
 }
