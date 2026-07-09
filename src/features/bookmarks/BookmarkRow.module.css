@@ -9,6 +9,17 @@
 .row:hover {
   background: var(--subtle);
 }
+.selected {
+  background: var(--accent-soft);
+}
+.check {
+  color: var(--text-tertiary);
+  flex-shrink: 0;
+}
+.checkOn {
+  color: var(--accent);
+  flex-shrink: 0;
+}
 .title {
   font-size: 13px;
   font-weight: 500;

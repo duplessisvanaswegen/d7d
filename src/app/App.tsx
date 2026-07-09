@@ -6,6 +6,7 @@ import { NoteModal } from '@/features/notes/NoteModal'
 import { OptionsModal } from '@/features/options/OptionsModal'
 import { MobileTabs } from './MobileTabs'
 import { Toaster } from '@/ui/Toaster'
+import { BulkBar } from '@/ui/BulkBar'
 import { useUI } from '@/state/ui'
 import styles from './App.module.css'
 
@@ -22,6 +23,7 @@ export function App() {
       <BookmarkModal />
       <NoteModal />
       <OptionsModal />
+      <BulkBar />
       <Toaster />
     </div>
   )

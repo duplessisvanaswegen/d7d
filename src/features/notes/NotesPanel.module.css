@@ -32,6 +32,11 @@
   background: var(--subtle);
   border-radius: 20px;
 }
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
 .addBtn {
   display: inline-flex;
   align-items: center;

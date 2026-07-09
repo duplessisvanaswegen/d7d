@@ -1,5 +1,5 @@
 import { useLiveQuery } from 'dexie-react-hooks'
-import { Bookmark as BookmarkIcon, ChevronDown, ChevronRight, SearchX } from 'lucide-react'
+import { Bookmark as BookmarkIcon, ChevronDown, ChevronRight, SearchX, CircleCheck } from 'lucide-react'
 import { db } from '@/db/db'
 import { useUI } from '@/state/ui'
 import { EmptyState } from '@/ui/EmptyState'
@@ -12,6 +12,9 @@ import styles from './BookmarksPanel.module.css'
 export function BookmarksPanel() {
   const openAdd = useUI((s) => s.openAddBookmark)
   const query = useUI((s) => s.query)
+  const enterSelect = useUI((s) => s.enterSelect)
+  const clearSelect = useUI((s) => s.clearSelect)
+  const selecting = useUI((s) => s.selection.mode === 'bookmark')
   const bookmarks = useLiveQuery(() => db.bookmarks.orderBy('order').toArray(), [], [] as Bookmark[])
   const categories = useLiveQuery(
     () => db.categories.where('type').equals('bookmark').toArray(),
@@ -54,6 +57,12 @@ export function BookmarksPanel() {
           <h2 className={styles.title}>Bookmarks</h2>
           <span className={styles.count}>{searching ? filtered.length : bookmarks.length}</span>
         </div>
+        {bookmarks.length > 0 && (
+          <button className={styles.selectBtn} onClick={() => (selecting ? clearSelect() : enterSelect('bookmark'))}>
+            <CircleCheck size={15} />
+            <span>{selecting ? 'Done' : 'Select'}</span>
+          </button>
+        )}
       </header>
 
       {bookmarks.length === 0 ? (

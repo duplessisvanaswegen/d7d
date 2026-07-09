@@ -1,5 +1,5 @@
 import { useLiveQuery } from 'dexie-react-hooks'
-import { StickyNote, Plus, SearchX } from 'lucide-react'
+import { StickyNote, Plus, SearchX, CircleCheck } from 'lucide-react'
 import { db } from '@/db/db'
 import { useUI } from '@/state/ui'
 import { EmptyState } from '@/ui/EmptyState'
@@ -12,6 +12,9 @@ import styles from './NotesPanel.module.css'
 export function NotesPanel() {
   const openAdd = useUI((s) => s.openAddNote)
   const query = useUI((s) => s.query)
+  const enterSelect = useUI((s) => s.enterSelect)
+  const clearSelect = useUI((s) => s.clearSelect)
+  const selecting = useUI((s) => s.selection.mode === 'note')
   const notes = useLiveQuery(() => db.notes.toArray(), [], [] as Note[])
   const categories = useLiveQuery(() => db.categories.where('type').equals('note').toArray(), [], [] as Category[])
   const tags = useLiveQuery(() => db.tags.where('type').equals('note').toArray(), [], [] as Tag[])
@@ -46,10 +49,16 @@ export function NotesPanel() {
           <span className={styles.count}>{searching ? filtered.length : notes.length}</span>
         </div>
         {notes.length > 0 && (
-          <button className={styles.addBtn} onClick={openAdd}>
-            <Plus size={15} />
-            <span>Note</span>
-          </button>
+          <div className={styles.actions}>
+            <button className={styles.addBtn} onClick={() => (selecting ? clearSelect() : enterSelect('note'))}>
+              <CircleCheck size={15} />
+              <span>{selecting ? 'Done' : 'Select'}</span>
+            </button>
+            <button className={styles.addBtn} onClick={openAdd}>
+              <Plus size={15} />
+              <span>Note</span>
+            </button>
+          </div>
         )}
       </header>
 

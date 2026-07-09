@@ -173,6 +173,34 @@ export async function duplicateNote(id: ID): Promise<void> {
   await db.notes.add({ ...n, id: uid(), order: await nextNoteOrder(), pinned: false, createdAt: ts, updatedAt: ts })
 }
 
+// ── Bulk actions ────────────────────────────────────────────
+export async function bulkDelete(type: ItemType, ids: ID[]): Promise<void> {
+  const table = type === 'bookmark' ? db.bookmarks : db.notes
+  await table.bulkDelete(ids)
+}
+
+export async function bulkSetCategory(type: ItemType, ids: ID[], categoryName: string): Promise<void> {
+  const categoryId = await ensureCategory(type, categoryName)
+  const table = type === 'bookmark' ? db.bookmarks : db.notes
+  await db.transaction('rw', table, async () => {
+    for (const id of ids) await table.update(id, { categoryId, updatedAt: now() })
+  })
+}
+
+export async function bulkAddTags(type: ItemType, ids: ID[], tagNames: string[]): Promise<void> {
+  const tagIds = await ensureTags(type, tagNames)
+  if (!tagIds.length) return
+  const table = type === 'bookmark' ? db.bookmarks : db.notes
+  await db.transaction('rw', table, async () => {
+    for (const id of ids) {
+      const item = await table.get(id)
+      if (!item) continue
+      const merged = [...new Set([...item.tagIds, ...tagIds])]
+      await table.update(id, { tagIds: merged, updatedAt: now() })
+    }
+  })
+}
+
 /** Swap a note with its neighbour within the same pinned group. */
 export async function moveNote(id: ID, dir: -1 | 1): Promise<void> {
   const note = await db.notes.get(id)

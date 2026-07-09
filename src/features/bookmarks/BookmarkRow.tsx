@@ -1,4 +1,4 @@
-import { Pencil, Link as LinkIcon, ExternalLink, ArrowUp, ArrowDown, Trash2 } from 'lucide-react'
+import { Pencil, Link as LinkIcon, ExternalLink, ArrowUp, ArrowDown, Trash2, CircleCheckBig, Circle } from 'lucide-react'
 import { Menu, type MenuItem } from '@/ui/Menu'
 import { Favicon } from '@/ui/Favicon'
 import { db } from '@/db/db'
@@ -13,6 +13,10 @@ import styles from './BookmarkRow.module.css'
 export function BookmarkRow({ bookmark }: { bookmark: Bookmark }) {
   const openEdit = useUI((s) => s.openEditBookmark)
   const openLinks = useSettings((s) => s.openLinks)
+  const selecting = useUI((s) => s.selection.mode === 'bookmark')
+  const selected = useUI((s) => s.selection.ids.has(bookmark.id))
+  const toggleSelected = useUI((s) => s.toggleSelected)
+
   const open = () =>
     window.open(bookmark.url, openLinks === 'new' ? '_blank' : '_self', 'noopener,noreferrer')
 
@@ -32,18 +36,24 @@ export function BookmarkRow({ bookmark }: { bookmark: Bookmark }) {
 
   return (
     <div
-      className={styles.row}
-      onClick={open}
+      className={selected ? `${styles.row} ${styles.selected}` : styles.row}
+      onClick={selecting ? () => toggleSelected(bookmark.id) : open}
       role="button"
       tabIndex={0}
       onKeyDown={(e) => {
-        if (e.key === 'Enter') open()
+        if (e.key === 'Enter') selecting ? toggleSelected(bookmark.id) : open()
       }}
     >
+      {selecting &&
+        (selected ? (
+          <CircleCheckBig size={17} className={styles.checkOn} />
+        ) : (
+          <Circle size={17} className={styles.check} />
+        ))}
       <Favicon url={bookmark.url} title={bookmark.title} size={22} />
       <span className={styles.title}>{bookmark.title}</span>
       <span className={styles.domain}>{getDomain(bookmark.url)}</span>
-      <Menu items={items} />
+      {!selecting && <Menu items={items} />}
     </div>
   )
 }

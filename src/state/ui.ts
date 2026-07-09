@@ -22,6 +22,11 @@ interface UIState {
   mobileTab: 'bookmarks' | 'notes'
   setMobileTab: (t: 'bookmarks' | 'notes') => void
 
+  selection: { mode: 'bookmark' | 'note' | null; ids: Set<ID> }
+  enterSelect: (mode: 'bookmark' | 'note') => void
+  toggleSelected: (id: ID) => void
+  clearSelect: () => void
+
   collapsedGroups: Set<ID>
   toggleGroup: (id: ID) => void
 }
@@ -46,6 +51,16 @@ export const useUI = create<UIState>((set) => ({
 
   mobileTab: 'bookmarks',
   setMobileTab: (t) => set({ mobileTab: t }),
+
+  selection: { mode: null, ids: new Set<ID>() },
+  enterSelect: (mode) => set({ selection: { mode, ids: new Set<ID>() } }),
+  toggleSelected: (id) =>
+    set((s) => {
+      const ids = new Set(s.selection.ids)
+      ids.has(id) ? ids.delete(id) : ids.add(id)
+      return { selection: { ...s.selection, ids } }
+    }),
+  clearSelect: () => set({ selection: { mode: null, ids: new Set<ID>() } }),
 
   collapsedGroups: new Set<ID>(),
   toggleGroup: (id) =>

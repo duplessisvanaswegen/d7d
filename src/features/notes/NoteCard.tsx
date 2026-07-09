@@ -1,4 +1,4 @@
-import { Pencil, Copy, CopyPlus, Pin, ArrowUp, ArrowDown, Trash2 } from 'lucide-react'
+import { Pencil, Copy, CopyPlus, Pin, ArrowUp, ArrowDown, Trash2, CircleCheckBig, Circle } from 'lucide-react'
 import { Menu, type MenuItem } from '@/ui/Menu'
 import { db } from '@/db/db'
 import { useUI } from '@/state/ui'
@@ -16,6 +16,9 @@ interface Props {
 
 export function NoteCard({ note, categoryName, tagNames }: Props) {
   const openEdit = useUI((s) => s.openEditNote)
+  const selecting = useUI((s) => s.selection.mode === 'note')
+  const selected = useUI((s) => s.selection.ids.has(note.id))
+  const toggleSelected = useUI((s) => s.toggleSelected)
   const meta = [categoryName, ...tagNames.map((t) => `#${t}`)].filter(Boolean).join('  ·  ')
   const copy = () => void navigator.clipboard?.writeText([note.title, note.body].filter(Boolean).join('\n'))
 
@@ -35,21 +38,29 @@ export function NoteCard({ note, categoryName, tagNames }: Props) {
   ]
 
   return (
-    <div className={styles.card} style={{ background: noteBg(note.color) }} onClick={() => openEdit(note.id)}>
+    <div
+      className={selected ? `${styles.card} ${styles.selected}` : styles.card}
+      style={{ background: noteBg(note.color) }}
+      onClick={selecting ? () => toggleSelected(note.id) : () => openEdit(note.id)}
+    >
       <div className={styles.head}>
+        {selecting &&
+          (selected ? <CircleCheckBig size={16} className={styles.check} /> : <Circle size={16} className={styles.check} />)}
         {note.title ? <span className={styles.title}>{note.title}</span> : <span className={styles.spacer} />}
         {note.pinned && <Pin size={13} className={styles.pin} />}
-        <button
-          className={styles.iconBtn}
-          onClick={(e) => {
-            e.stopPropagation()
-            copy()
-          }}
-          aria-label="Copy to clipboard"
-        >
-          <Copy size={14} />
-        </button>
-        <Menu items={items} />
+        {!selecting && (
+          <button
+            className={styles.iconBtn}
+            onClick={(e) => {
+              e.stopPropagation()
+              copy()
+            }}
+            aria-label="Copy to clipboard"
+          >
+            <Copy size={14} />
+          </button>
+        )}
+        {!selecting && <Menu items={items} />}
       </div>
       {note.body && <p className={styles.body}>{note.body}</p>}
       {meta && <span className={styles.meta}>{meta}</span>}

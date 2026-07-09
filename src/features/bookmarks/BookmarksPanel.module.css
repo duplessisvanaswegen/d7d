@@ -34,6 +34,21 @@
   background: var(--subtle);
   border-radius: 20px;
 }
+.selectBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 11px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+.selectBtn:hover {
+  color: var(--text-primary);
+  background: var(--subtle);
+}
 
 .list {
   flex: 1;
