@@ -25,12 +25,11 @@ system (light / dark / accent / density) — no UI kit, no CSS framework.
 
 ## Built spec-first
 
-This wasn't vibe-coded — it went through a documented process, each stage reviewed
-before the next (**ideate → functional → design → technical → implementation → launch**):
-
-- [Functional spec](docs/functional-spec.md) — what it does and how it behaves
-- [Design spec](docs/design-spec.md) — the token system and interaction model
-- [Technical spec](docs/technical-spec.md) — architecture, data model, and the tricky bits (search grammar, import diff, favicon caching, offline)
+Not vibe-coded — designed through a documented process (**ideate → functional spec
+→ design → technical spec → implementation → launch**), each stage reviewed before
+the next. It shows up in the architecture: a hand-rolled search grammar, an
+import-diff with conflict resolution, offline-first favicon/weather caching, and a
+tokenised design system.
 
 ## Develop
 

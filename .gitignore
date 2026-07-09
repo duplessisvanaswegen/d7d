@@ -9,3 +9,6 @@ dev-dist
 *.log
 *.tsbuildinfo
 .claude/settings.local.json
+
+# Working specs — kept locally, not published
+docs/*.md
