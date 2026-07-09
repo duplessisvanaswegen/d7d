@@ -1,10 +1,14 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
-import { X, Palette, Bookmark, Database, CloudSun, RefreshCw, Upload, Download, FileCode, Info } from 'lucide-react'
+import { useLiveQuery } from 'dexie-react-hooks'
+import { X, Palette, Bookmark, StickyNote, Database, CloudSun, RefreshCw, Upload, Download, FileCode, Info, Pencil, Trash2, Check } from 'lucide-react'
+import { db } from '@/db/db'
+import { renameCategory, deleteCategory, renameTag, deleteTag } from '@/db/repo'
 import { useUI } from '@/state/ui'
 import { useSettings, type TempUnit, type ClockFormat } from '@/state/settings'
 import { geocode, type GeoResult } from '@/features/weather/api'
 import { useWeather } from '@/features/weather/store'
+import type { ItemType } from '@/types/models'
 import {
   loadAppearance,
   applyAppearance,
@@ -26,10 +30,11 @@ import {
 import type { ExportFile } from '@/features/importexport/schema'
 import styles from './OptionsModal.module.css'
 
-type Tab = 'appearance' | 'bookmarks' | 'weather' | 'data'
+type Tab = 'appearance' | 'bookmarks' | 'notes' | 'weather' | 'data'
 const TABS: { id: Tab; label: string; icon: typeof Palette }[] = [
   { id: 'appearance', label: 'Appearance', icon: Palette },
   { id: 'bookmarks', label: 'Bookmarks', icon: Bookmark },
+  { id: 'notes', label: 'Notes', icon: StickyNote },
   { id: 'weather', label: 'Weather & Clocks', icon: CloudSun },
   { id: 'data', label: 'Data & Backup', icon: Database },
 ]
@@ -73,6 +78,7 @@ export function OptionsModal() {
           <div className={styles.content}>
             {tab === 'appearance' && <AppearanceTab />}
             {tab === 'bookmarks' && <BookmarksTab />}
+            {tab === 'notes' && <NotesTab />}
             {tab === 'weather' && <WeatherTab />}
             {tab === 'data' && <DataTab onDone={close} />}
           </div>
@@ -197,6 +203,156 @@ function BookmarksTab() {
           onChange={setOpenLinks}
         />
       </Row>
+      <div className={styles.divider} />
+      <Manage type="bookmark" />
+    </div>
+  )
+}
+
+function NotesTab() {
+  return (
+    <div className={styles.tab}>
+      <h3 className={styles.tabTitle}>Notes</h3>
+      <Manage type="note" />
+    </div>
+  )
+}
+
+// ── Category / tag management ────────────────────────────────
+function Manage({ type }: { type: ItemType }) {
+  const cats = useLiveQuery(
+    async () => (await db.categories.where('type').equals(type).toArray()).filter((c) => !c.reserved),
+    [type],
+    [],
+  )
+  const tags = useLiveQuery(() => db.tags.where('type').equals(type).toArray(), [type], [])
+  const items = useLiveQuery(
+    async (): Promise<{ categoryId: string; tagIds: string[] }[]> =>
+      type === 'bookmark' ? db.bookmarks.toArray() : db.notes.toArray(),
+    [type],
+    [] as { categoryId: string; tagIds: string[] }[],
+  )
+
+  const catCount = new Map<string, number>()
+  const tagCount = new Map<string, number>()
+  for (const i of items) {
+    catCount.set(i.categoryId, (catCount.get(i.categoryId) ?? 0) + 1)
+    i.tagIds.forEach((id) => tagCount.set(id, (tagCount.get(id) ?? 0) + 1))
+  }
+
+  return (
+    <>
+      <ManageList
+        heading="Categories"
+        rows={cats.map((c) => ({ id: c.id, name: c.name, count: catCount.get(c.id) ?? 0 }))}
+        empty="No categories yet."
+        onRename={(id, name) => void renameCategory(id, name)}
+        onDelete={(id, name) => {
+          if (window.confirm(`Delete category “${name}”? Its items move to Uncategorised.`)) void deleteCategory(id, false)
+        }}
+      />
+      <ManageList
+        heading="Tags"
+        prefix="#"
+        rows={tags.map((t) => ({ id: t.id, name: t.name, count: tagCount.get(t.id) ?? 0 }))}
+        empty="No tags yet."
+        onRename={(id, name) => void renameTag(id, name)}
+        onDelete={(id, name) => {
+          if (window.confirm(`Delete tag “#${name}”? It will be removed from all items.`)) void deleteTag(type, id)
+        }}
+      />
+    </>
+  )
+}
+
+interface ManageRow {
+  id: string
+  name: string
+  count: number
+}
+function ManageList({
+  heading,
+  rows,
+  empty,
+  prefix = '',
+  onRename,
+  onDelete,
+}: {
+  heading: string
+  rows: ManageRow[]
+  empty: string
+  prefix?: string
+  onRename: (id: string, name: string) => void
+  onDelete: (id: string, name: string) => void
+}) {
+  return (
+    <div className={styles.manageBlock}>
+      <span className={styles.manageHeading}>{heading}</span>
+      {rows.length === 0 ? (
+        <span className={styles.rowSub}>{empty}</span>
+      ) : (
+        <div className={styles.manageList}>
+          {rows.map((r) => (
+            <ManageRowItem key={r.id} row={r} prefix={prefix} onRename={onRename} onDelete={onDelete} />
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+function ManageRowItem({
+  row,
+  prefix,
+  onRename,
+  onDelete,
+}: {
+  row: ManageRow
+  prefix: string
+  onRename: (id: string, name: string) => void
+  onDelete: (id: string, name: string) => void
+}) {
+  const [editing, setEditing] = useState(false)
+  const [value, setValue] = useState(row.name)
+  const save = () => {
+    if (value.trim() && value.trim() !== row.name) onRename(row.id, value.trim())
+    setEditing(false)
+  }
+  return (
+    <div className={styles.manageRow}>
+      {editing ? (
+        <input
+          autoFocus
+          className={styles.manageInput}
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+          onBlur={save}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') save()
+            else if (e.key === 'Escape') {
+              setValue(row.name)
+              setEditing(false)
+            }
+          }}
+        />
+      ) : (
+        <span className={styles.manageName}>
+          {prefix}
+          {row.name}
+        </span>
+      )}
+      <span className={styles.manageCount}>{row.count}</span>
+      {editing ? (
+        <button className={styles.manageBtn} onClick={save} aria-label="Save">
+          <Check size={14} />
+        </button>
+      ) : (
+        <button className={styles.manageBtn} onClick={() => setEditing(true)} aria-label={`Rename ${row.name}`}>
+          <Pencil size={14} />
+        </button>
+      )}
+      <button className={`${styles.manageBtn} ${styles.manageDanger}`} onClick={() => onDelete(row.id, row.name)} aria-label={`Delete ${row.name}`}>
+        <Trash2 size={14} />
+      </button>
     </div>
   )
 }

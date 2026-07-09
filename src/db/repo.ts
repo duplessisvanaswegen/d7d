@@ -26,6 +26,35 @@ export async function ensureCategory(type: ItemType, name: string): Promise<ID> 
   return id
 }
 
+/** Rename a category. Returns false on name collision or if reserved. */
+export async function renameCategory(id: ID, name: string): Promise<boolean> {
+  const cat = await db.categories.get(id)
+  if (!cat || cat.reserved) return false
+  const trimmed = name.trim()
+  if (!trimmed) return false
+  const existing = await findCategoryByName(cat.type, trimmed)
+  if (existing && existing.id !== id) return false
+  await db.categories.update(id, { name: trimmed, updatedAt: now() })
+  return true
+}
+
+/** Delete a category; reassign its items to Uncategorised, or delete them too. */
+export async function deleteCategory(id: ID, deleteItems: boolean): Promise<void> {
+  const cat = await db.categories.get(id)
+  if (!cat || cat.reserved) return
+  const table = cat.type === 'bookmark' ? db.bookmarks : db.notes
+  const uncat = UNCATEGORISED[cat.type]
+  const items = await table.where('categoryId').equals(id).toArray()
+  await db.transaction('rw', table, db.categories, async () => {
+    if (deleteItems) {
+      await table.bulkDelete(items.map((i) => i.id))
+    } else {
+      for (const it of items) await table.update(it.id, { categoryId: uncat, updatedAt: now() })
+    }
+    await db.categories.delete(id)
+  })
+}
+
 // ── Tags ────────────────────────────────────────────────────
 export async function ensureTags(type: ItemType, names: string[]): Promise<ID[]> {
   const ids: ID[] = []
@@ -46,6 +75,29 @@ export async function ensureTags(type: ItemType, names: string[]): Promise<ID[]>
     }
   })
   return [...new Set(ids)]
+}
+
+export async function renameTag(id: ID, name: string): Promise<boolean> {
+  const tag = await db.tags.get(id)
+  if (!tag) return false
+  const trimmed = name.trim().replace(/^#/, '').trim()
+  if (!trimmed) return false
+  const existing = (await db.tags.where('type').equals(tag.type).toArray()).find(
+    (t) => t.name.toLowerCase() === trimmed.toLowerCase(),
+  )
+  if (existing && existing.id !== id) return false
+  await db.tags.update(id, { name: trimmed })
+  return true
+}
+
+/** Delete a tag; removes it from every item that used it. */
+export async function deleteTag(type: ItemType, id: ID): Promise<void> {
+  const table = type === 'bookmark' ? db.bookmarks : db.notes
+  const items = await table.where('tagIds').equals(id).toArray()
+  await db.transaction('rw', table, db.tags, async () => {
+    for (const it of items) await table.update(it.id, { tagIds: it.tagIds.filter((t) => t !== id), updatedAt: now() })
+    await db.tags.delete(id)
+  })
 }
 
 // ── Bookmarks ───────────────────────────────────────────────

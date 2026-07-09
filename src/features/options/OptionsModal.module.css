@@ -142,6 +142,68 @@
   background: var(--surface);
   color: var(--text-secondary);
 }
+.manageBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.manageHeading {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+.manageList {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.manageRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: 8px;
+}
+.manageRow:hover {
+  background: var(--subtle);
+}
+.manageName {
+  flex: 1;
+  min-width: 0;
+  font-size: 13px;
+  color: var(--text-primary);
+}
+.manageInput {
+  flex: 1;
+  min-width: 0;
+  padding: 5px 8px;
+  background: var(--surface);
+  border: 1px solid var(--accent);
+  border-radius: 6px;
+  outline: none;
+  font-size: 13px;
+  color: var(--text-primary);
+}
+.manageCount {
+  font-size: 12px;
+  color: var(--text-tertiary);
+}
+.manageBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+  color: var(--text-tertiary);
+}
+.manageBtn:hover {
+  background: var(--surface);
+  color: var(--text-secondary);
+}
+.manageDanger:hover {
+  color: var(--danger);
+}
 .addLoc {
   display: flex;
   gap: 8px;
