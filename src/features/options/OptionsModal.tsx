@@ -558,6 +558,7 @@ function SyncTab() {
 
 function SyncConnected({ status, lastSyncAt, lastError }: { status: SyncStatus; lastSyncAt: number | null; lastError: string | null }) {
   const config = useSync((s) => s.config)
+  const lastSummary = useSync((s) => s.lastSummary)
   const [busy, setBusy] = useState(false)
 
   async function onDisconnect() {
@@ -575,6 +576,11 @@ function SyncConnected({ status, lastSyncAt, lastError }: { status: SyncStatus; 
         <span className={styles.rowTitle}>{STATUS_LABEL[status]}</span>
         <span className={styles.rowSub}>· last synced {agoShort(lastSyncAt)}</span>
       </div>
+      {lastSummary && (
+        <span className={styles.rowSub}>
+          Last sync: pulled {lastSummary.pulled} · pushed {lastSummary.pushed}
+        </span>
+      )}
       {lastError && (
         <div className={styles.errorNote}>
           <FileCode size={15} /> {lastError}
@@ -623,6 +629,9 @@ function SyncSetup() {
     setResult(res)
     if (!res.ok && res.needsSetup) setShowSql(true)
     setBusy(false)
+    // First connect: run the initial additive reconcile now; its "pulled N · pushed M"
+    // summary appears in the connected view this component switches to.
+    if (res.ok) void syncNow()
   }
 
   async function copySql() {

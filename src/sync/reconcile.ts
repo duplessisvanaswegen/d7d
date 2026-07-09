@@ -2,7 +2,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import { db } from '@/db/db'
 import { UNCATEGORISED } from '@/db/init'
 import { getClient } from './connect'
-import { useSync, loadCursors, saveCursor, type Cursor, type SyncStatus } from './config'
+import { useSync, loadCursors, saveCursor, type Cursor, type SyncStatus, type Summary } from './config'
 import { enqueuePut, listOutbox, removeOutbox, type OutboxRow } from './outbox'
 import { normalizeRow } from './normalize'
 import { SYNC_TABLES, type SyncTable } from './constants'
@@ -12,11 +12,6 @@ import { SYNC_TABLES, type SyncTable } from './constants'
 
 const PAGE = 500
 const RESERVED_CAT_IDS = new Set(Object.values(UNCATEGORISED))
-
-export interface Summary {
-  pushed: number
-  pulled: number
-}
 
 interface CloudRow {
   id: string
@@ -201,7 +196,7 @@ export function reconcile(): Promise<Summary> {
     dirty = true
     return running
   }
-  const { setStatus, setLastSyncAt } = useSync.getState()
+  const { setStatus, setLastSyncAt, setSummary } = useSync.getState()
   running = (async () => {
     let summary: Summary = { pushed: 0, pulled: 0 }
     try {
@@ -211,6 +206,7 @@ export function reconcile(): Promise<Summary> {
         summary = await runOnce()
       } while (dirty)
       setLastSyncAt(Date.now())
+      setSummary(summary)
       setStatus('idle')
     } catch (e) {
       const [status, message] = classify(e)

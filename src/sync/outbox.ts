@@ -1,6 +1,7 @@
 import { db } from '@/db/db'
 import { now } from '@/lib/id'
 import { syncEnabled } from './config'
+import { emitMutation } from './bus'
 import type { SyncTable } from './constants'
 
 // The outbox is the single choke-point through which every local mutation is
@@ -47,6 +48,7 @@ async function enqueue(table: SyncTable, recordId: string, op: 'put' | 'delete',
   const row = coalesce(existing, { table, recordId, op, created, updatedAt: now() })
   if (row) await db.outbox.put(row)
   else await db.outbox.delete(key)
+  emitMutation() // schedules a debounced reconcile (no-op unless triggers are running)
 }
 
 export const enqueuePut = (table: SyncTable, recordId: string, isCreate = false): Promise<void> =>

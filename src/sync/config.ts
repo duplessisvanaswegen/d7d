@@ -90,16 +90,24 @@ export function saveLastSync(ts: number): void {
   localStorage.setItem(LASTSYNC_KEY, String(ts))
 }
 
+/** Result of a reconcile pass — surfaced as the first-connect "pulled N · pushed M". */
+export interface Summary {
+  pushed: number
+  pulled: number
+}
+
 // ── Store ─────────────────────────────────────────────────────────────────────
 interface SyncState {
   config: SyncConfig
   status: SyncStatus
   lastSyncAt: number | null
   lastError: string | null
+  lastSummary: Summary | null
   /** Rewrite config (persisting) and keep the enabled-mirror in sync. */
   setConfig: (patch: Partial<SyncConfig>) => void
   setStatus: (status: SyncStatus, error?: string | null) => void
   setLastSyncAt: (ts: number) => void
+  setSummary: (summary: Summary) => void
 }
 
 export const useSync = create<SyncState>((set, get) => ({
@@ -107,6 +115,7 @@ export const useSync = create<SyncState>((set, get) => ({
   status: loadConfig().enabled ? 'idle' : 'off',
   lastSyncAt: loadLastSync(),
   lastError: null,
+  lastSummary: null,
   setConfig: (patch) => {
     const config = { ...get().config, ...patch }
     saveConfig(config)
@@ -118,4 +127,5 @@ export const useSync = create<SyncState>((set, get) => ({
     saveLastSync(ts)
     set({ lastSyncAt: ts })
   },
+  setSummary: (summary) => set({ lastSummary: summary }),
 }))
