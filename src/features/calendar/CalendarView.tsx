@@ -19,6 +19,8 @@ const dateKey = (s: string) => s.slice(0, 10)
 
 export function CalendarView() {
   const query = useUI((s) => s.query)
+  const openEdit = useUI((s) => s.openEditNote)
+  const openAdd = useUI((s) => s.openAddNote)
   const hour12 = useSettings((s) => s.clockFormat) === '12'
   const [anchor, setAnchor] = useState(() => {
     const now = new Date()
@@ -115,6 +117,8 @@ export function CalendarView() {
                     <div
                       key={di}
                       className={`${styles.col}${other ? ` ${styles.other}` : ''}${key === todayKey ? ` ${styles.todayCol}` : ''}`}
+                      onClick={() => openAdd({ kind: 'task', startDate: key })}
+                      title="New task"
                     />
                   )
                 })}
@@ -130,7 +134,7 @@ export function CalendarView() {
                   </span>
                 ))}
                 {segments.map((seg) => (
-                  <Bar key={seg.item.id} seg={seg} hour12={hour12} />
+                  <Bar key={seg.item.id} seg={seg} hour12={hour12} onEdit={openEdit} />
                 ))}
                 {hiddenPerCol.map((n, di) =>
                   n > 0 ? (
@@ -148,7 +152,7 @@ export function CalendarView() {
   )
 }
 
-function Bar({ seg, hour12 }: { seg: Segment; hour12: boolean }) {
+function Bar({ seg, hour12, onEdit }: { seg: Segment; hour12: boolean; onEdit: (id: string) => void }) {
   const { item, startCol, endCol, lane, continuesLeft, continuesRight } = seg
   const showTime = item.timed && !continuesLeft
   const cls = [
@@ -160,7 +164,8 @@ function Bar({ seg, hour12 }: { seg: Segment; hour12: boolean }) {
     .filter(Boolean)
     .join(' ')
   return (
-    <span
+    <button
+      type="button"
       className={cls}
       style={{
         gridColumn: `${startCol + 1} / ${endCol + 2}`,
@@ -168,9 +173,10 @@ function Bar({ seg, hour12 }: { seg: Segment; hour12: boolean }) {
         background: noteBg(item.color),
       }}
       title={item.title}
+      onClick={() => onEdit(item.id)}
     >
       {showTime && <b className={styles.barTime}>{timeOf(item.startsAt, hour12)}</b>}
       <span className={styles.barTitle}>{item.title}</span>
-    </span>
+    </button>
   )
 }

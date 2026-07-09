@@ -3,7 +3,7 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { Pin, X } from 'lucide-react'
 import { db } from '@/db/db'
 import { saveNoteForm } from '@/db/repo'
-import { useUI } from '@/state/ui'
+import { useUI, type NotePrefill } from '@/state/ui'
 import { Modal } from '@/ui/Modal'
 import { NOTE_COLORS, noteBg, NOTE_BODY_SOFT_CAP } from './colors'
 import type { ID, NoteColor, NoteKind } from '@/types/models'
@@ -23,14 +23,16 @@ function splitFloating(s?: string): { date: string; time: string } {
 
 export function NoteModal() {
   const { noteModal, closeNoteModal } = useUI()
+  const { editingId, prefill } = noteModal
+  const key = editingId ?? (prefill ? `new-${prefill.kind ?? 'note'}-${prefill.startDate ?? ''}` : 'new')
   return (
-    <Modal open={noteModal.open} onClose={closeNoteModal} title={noteModal.editingId ? 'Edit' : 'New'}>
-      <NoteForm key={noteModal.editingId ?? 'new'} editingId={noteModal.editingId} onDone={closeNoteModal} />
+    <Modal open={noteModal.open} onClose={closeNoteModal} title={editingId ? 'Edit' : 'New'}>
+      <NoteForm key={key} editingId={editingId} prefill={prefill} onDone={closeNoteModal} />
     </Modal>
   )
 }
 
-function NoteForm({ editingId, onDone }: { editingId: ID | null; onDone: () => void }) {
+function NoteForm({ editingId, prefill, onDone }: { editingId: ID | null; prefill?: NotePrefill; onDone: () => void }) {
   const categories = useLiveQuery(
     async () => (await db.categories.where('type').equals('note').toArray()).filter((c) => !c.reserved),
     [],
@@ -38,7 +40,7 @@ function NoteForm({ editingId, onDone }: { editingId: ID | null; onDone: () => v
   )
   const tags = useLiveQuery(() => db.tags.where('type').equals('note').toArray(), [], [])
 
-  const [kind, setKind] = useState<NoteKind>('note')
+  const [kind, setKind] = useState<NoteKind>(prefill?.kind ?? 'note')
   const [title, setTitle] = useState('')
   const [body, setBody] = useState('')
   const [color, setColor] = useState<NoteColor>('yellow')
@@ -47,7 +49,7 @@ function NoteForm({ editingId, onDone }: { editingId: ID | null; onDone: () => v
   const [tagDraft, setTagDraft] = useState('')
   const [pinned, setPinned] = useState(false)
   const [allDay, setAllDay] = useState(true)
-  const [startDate, setStartDate] = useState('')
+  const [startDate, setStartDate] = useState(prefill?.startDate ?? '')
   const [startTime, setStartTime] = useState('')
   const [endDate, setEndDate] = useState('')
   const [endTime, setEndTime] = useState('')

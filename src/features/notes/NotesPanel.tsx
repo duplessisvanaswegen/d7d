@@ -131,7 +131,7 @@ export function NotesPanel() {
               <CircleCheck size={15} />
               <span>{selecting ? 'Done' : 'Select'}</span>
             </button>
-            <button className={styles.addBtn} onClick={openAdd}>
+            <button className={styles.addBtn} onClick={() => openAdd()}>
               <Plus size={15} />
               <span>New</span>
             </button>

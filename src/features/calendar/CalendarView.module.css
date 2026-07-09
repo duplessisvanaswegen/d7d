@@ -103,9 +103,16 @@
 }
 .col {
   border-left: 1px solid var(--border);
+  cursor: pointer;
+}
+.col:hover {
+  background: var(--subtle);
 }
 .col:first-child {
   border-left: none;
+}
+.todayCol:hover {
+  background: var(--accent-soft);
 }
 .other {
   background: var(--subtle);
@@ -123,6 +130,9 @@
   row-gap: 2px;
   column-gap: 2px;
   padding: 4px 3px;
+  /* Let empty grid space fall through to the clickable day columns beneath;
+     bars re-enable pointer events for their own edit clicks. */
+  pointer-events: none;
 }
 .dayNum {
   justify-self: start;
@@ -162,6 +172,12 @@
   color: var(--note-text);
   overflow: hidden;
   white-space: nowrap;
+  pointer-events: auto;
+  cursor: pointer;
+  text-align: left;
+}
+.bar:hover {
+  filter: brightness(1.08);
 }
 .barTime {
   font-weight: 700;

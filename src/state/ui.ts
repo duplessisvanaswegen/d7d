@@ -1,5 +1,11 @@
 import { create } from 'zustand'
-import type { ID } from '@/types/models'
+import type { ID, NoteKind } from '@/types/models'
+
+/** Seed values for a brand-new note (e.g. created from a calendar day). */
+export interface NotePrefill {
+  kind?: NoteKind
+  startDate?: string // 'YYYY-MM-DD'
+}
 
 interface UIState {
   bookmarkModal: { open: boolean; editingId: ID | null }
@@ -7,8 +13,8 @@ interface UIState {
   openEditBookmark: (id: ID) => void
   closeBookmarkModal: () => void
 
-  noteModal: { open: boolean; editingId: ID | null }
-  openAddNote: () => void
+  noteModal: { open: boolean; editingId: ID | null; prefill?: NotePrefill }
+  openAddNote: (prefill?: NotePrefill) => void
   openEditNote: (id: ID) => void
   closeNoteModal: () => void
 
@@ -41,7 +47,7 @@ export const useUI = create<UIState>((set) => ({
   closeBookmarkModal: () => set({ bookmarkModal: { open: false, editingId: null } }),
 
   noteModal: { open: false, editingId: null },
-  openAddNote: () => set({ noteModal: { open: true, editingId: null } }),
+  openAddNote: (prefill) => set({ noteModal: { open: true, editingId: null, prefill } }),
   openEditNote: (id) => set({ noteModal: { open: true, editingId: id } }),
   closeNoteModal: () => set({ noteModal: { open: false, editingId: null } }),
 
