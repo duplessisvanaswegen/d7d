@@ -4,6 +4,8 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { X, Palette, Bookmark, StickyNote, Database, CloudSun, RefreshCw, Upload, Download, FileCode, Info, Pencil, Trash2, Check } from 'lucide-react'
 import { db } from '@/db/db'
 import { renameCategory, deleteCategory, renameTag, deleteTag } from '@/db/repo'
+import { Modal } from '@/ui/Modal'
+import { useInstall } from '@/app/install'
 import { useUI } from '@/state/ui'
 import { useSettings, type TempUnit, type ClockFormat } from '@/state/settings'
 import { geocode, type GeoResult } from '@/features/weather/api'
@@ -233,6 +235,8 @@ function Manage({ type }: { type: ItemType }) {
     [] as { categoryId: string; tagIds: string[] }[],
   )
 
+  const [confirmCat, setConfirmCat] = useState<{ id: string; name: string } | null>(null)
+
   const catCount = new Map<string, number>()
   const tagCount = new Map<string, number>()
   for (const i of items) {
@@ -247,10 +251,45 @@ function Manage({ type }: { type: ItemType }) {
         rows={cats.map((c) => ({ id: c.id, name: c.name, count: catCount.get(c.id) ?? 0 }))}
         empty="No categories yet."
         onRename={(id, name) => void renameCategory(id, name)}
-        onDelete={(id, name) => {
-          if (window.confirm(`Delete category “${name}”? Its items move to Uncategorised.`)) void deleteCategory(id, false)
-        }}
+        onDelete={(id, name) => setConfirmCat({ id, name })}
       />
+      {confirmCat && (
+        <Modal
+          open
+          onClose={() => setConfirmCat(null)}
+          title="Delete category"
+          width={420}
+          footer={
+            <>
+              <button className={styles.ghost} onClick={() => setConfirmCat(null)}>
+                Cancel
+              </button>
+              <button
+                className={styles.danger}
+                onClick={() => {
+                  void deleteCategory(confirmCat.id, true)
+                  setConfirmCat(null)
+                }}
+              >
+                Delete items too
+              </button>
+              <button
+                className={styles.primary}
+                onClick={() => {
+                  void deleteCategory(confirmCat.id, false)
+                  setConfirmCat(null)
+                }}
+              >
+                Reassign to Uncategorised
+              </button>
+            </>
+          }
+        >
+          <p className={styles.confirmText}>
+            “{confirmCat.name}” — move its items to <b>Uncategorised</b>, or delete them along with the category?
+          </p>
+        </Modal>
+      )}
       <ManageList
         heading="Tags"
         prefix="#"
@@ -486,6 +525,7 @@ function agoLabel(ts: number | null): string {
 
 function DataTab({ onDone }: { onDone: () => void }) {
   const fileRef = useRef<HTMLInputElement>(null)
+  const install = useInstall()
   const [storage, setStorage] = useState<{ usage: number; quota: number } | null>(null)
   const [pending, setPending] = useState<{ data: ExportFile; diff: Diff } | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -568,6 +608,14 @@ function DataTab({ onDone }: { onDone: () => void }) {
   return (
     <div className={styles.tab}>
       <h3 className={styles.tabTitle}>Data &amp; Backup</h3>
+
+      {install.available && (
+        <Row title="Install app" sub="Add d7d to your home screen or dock for offline use">
+          <button className={styles.primary} onClick={() => void install.prompt()}>
+            Install
+          </button>
+        </Row>
+      )}
 
       <div className={styles.storage}>
         <div className={styles.storageHead}>

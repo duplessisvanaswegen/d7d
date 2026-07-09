@@ -31,6 +31,14 @@
   border-radius: var(--radius-ctl);
   box-shadow: var(--shadow-pop);
 }
+.header {
+  padding: 6px 7px;
+}
+.headerDivider {
+  height: 1px;
+  margin: 4px 0;
+  background: var(--border);
+}
 .item {
   display: flex;
   align-items: center;

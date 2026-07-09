@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { MoreVertical, type LucideIcon } from 'lucide-react'
 import styles from './Menu.module.css'
 
@@ -12,9 +12,10 @@ export interface MenuItem {
 interface Props {
   items: MenuItem[]
   label?: string
+  header?: (close: () => void) => ReactNode
 }
 
-export function Menu({ items, label = 'More actions' }: Props) {
+export function Menu({ items, label = 'More actions', header }: Props) {
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
 
@@ -47,7 +48,13 @@ export function Menu({ items, label = 'More actions' }: Props) {
         <MoreVertical size={16} />
       </button>
       {open && (
-        <div className={styles.menu} role="menu">
+        <div className={styles.menu} role="menu" onClick={(e) => e.stopPropagation()}>
+          {header && (
+            <>
+              <div className={styles.header}>{header(() => setOpen(false))}</div>
+              <div className={styles.headerDivider} />
+            </>
+          )}
           {items.map((it) => (
             <button
               key={it.label}

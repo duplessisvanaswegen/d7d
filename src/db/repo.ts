@@ -218,6 +218,10 @@ export async function toggleNotePin(id: ID): Promise<void> {
   if (n) await db.notes.update(id, { pinned: !n.pinned, updatedAt: now() })
 }
 
+export async function setNoteColor(id: ID, color: NoteColor): Promise<void> {
+  await db.notes.update(id, { color, updatedAt: now() })
+}
+
 export async function duplicateNote(id: ID): Promise<void> {
   const n = await db.notes.get(id)
   if (!n) return

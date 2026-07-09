@@ -2,9 +2,9 @@ import { Pencil, Copy, CopyPlus, Pin, ArrowUp, ArrowDown, Trash2, CircleCheckBig
 import { Menu, type MenuItem } from '@/ui/Menu'
 import { db } from '@/db/db'
 import { useUI } from '@/state/ui'
-import { deleteNote, duplicateNote, toggleNotePin, moveNote } from '@/db/repo'
+import { deleteNote, duplicateNote, toggleNotePin, moveNote, setNoteColor } from '@/db/repo'
 import { toast } from '@/state/toast'
-import { noteBg } from './colors'
+import { noteBg, NOTE_COLORS } from './colors'
 import type { Note } from '@/types/models'
 import styles from './NoteCard.module.css'
 
@@ -60,7 +60,27 @@ export function NoteCard({ note, categoryName, tagNames }: Props) {
             <Copy size={14} />
           </button>
         )}
-        {!selecting && <Menu items={items} />}
+        {!selecting && (
+          <Menu
+            items={items}
+            header={(close) => (
+              <div className={styles.swatchRow}>
+                {NOTE_COLORS.map((c) => (
+                  <button
+                    key={c}
+                    className={c === note.color ? `${styles.swatch} ${styles.swatchOn}` : styles.swatch}
+                    style={{ background: noteBg(c) }}
+                    onClick={() => {
+                      void setNoteColor(note.id, c)
+                      close()
+                    }}
+                    aria-label={c}
+                  />
+                ))}
+              </div>
+            )}
+          />
+        )}
       </div>
       {note.body && <p className={styles.body}>{note.body}</p>}
       {meta && <span className={styles.meta}>{meta}</span>}

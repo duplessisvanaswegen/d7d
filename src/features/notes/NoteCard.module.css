@@ -14,6 +14,20 @@
   outline: 2px solid var(--accent);
   outline-offset: -1px;
 }
+.swatchRow {
+  display: flex;
+  gap: 6px;
+}
+.swatch {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+}
+.swatchOn {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
 .check {
   color: var(--note-text);
   flex-shrink: 0;
